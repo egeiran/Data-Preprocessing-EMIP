@@ -134,5 +134,5 @@ def summarize():
     print(f"Average amount of messages: {tot_lm/correct}")
     print(f"Faulty files (correct): {faulty} ({correct})")
 
-one_file("22_rawdata.tsv", 1)
+one_file("10_rawdata.tsv", 1)
 # summarize()

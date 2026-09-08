@@ -7,3 +7,4 @@ matplotlib
 seaborn
 scikit-learn
 xgboost
+openpyxl          # 211_rawdata.xlsx er lagret som Excel, ikke tsv

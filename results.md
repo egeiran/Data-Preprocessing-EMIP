@@ -44,6 +44,12 @@
 - These are all categorical in my opinion
   - The mouseclicks carry some data, so they might not be, but in that case you should move the X and Y away from the string and the message will be categorical
 
+- Holes:
+  - I found varying amount of good data - some sets had a lot of bad data. 
+  - I found 9 sets with over 10% of the recording being wasted at not looking at the screen.
+    - This was found using "L Validity"   
+  - I will explore what to do with these in the next part
+
 
 ### Data cleaning
 > This will be based on the findings in the exploration
@@ -52,4 +58,14 @@
 
 - Missing values in the dataset:
   - Aux1 - almost no data -> remove the column in all datasets
+- 1, 9, 18, 20, 22, 23, 24, 39, 41
+  - 1: 45%
+  - 9: 19%
+  - 18: 53%
+  - 20: 10.7%
+  - 22: 91%
+  - 23: 39%
+  - 24: 13%
+  - 39: 68%
+  - 41: 17%
 - 

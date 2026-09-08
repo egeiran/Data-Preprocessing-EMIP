@@ -62,14 +62,14 @@ def one_file(filename, verbose=0):
 
     missing = (smp_["L Validity"] == 0).values
     group = (missing != np.r_[False, missing[:-1]]).cumsum()
-    hull = (pd.DataFrame({"group": group, "missing": missing})
+    holes = (pd.DataFrame({"group": group, "missing": missing})
             .query("missing")
             .groupby("group")
             .size()
             .reset_index(name="samples"))
-    hull["ms"] = hull["samples"] * 1000 / 250   # Sjekk om 250 (hz) er bildefrekvensen til alle
-    hull["type"] = np.where(hull["ms"] < 150, "blink", "loss")   # Er 150 valid her? TODO
-    ut = hull[["samples", "ms", "type"]]
+    holes["ms"] = holes["samples"] * 1000 / 250   # Sjekk om 250 (hz) er bildefrekvensen til alle
+    holes["type"] = np.where(holes["ms"] < 150, "blink", "loss")   # Er 150 valid her? TODO
+    ut = holes[["samples", "ms", "type"]]
 
     ut = (ut.groupby("type")
             .agg(antall=("ms", "size"),
@@ -78,6 +78,7 @@ def one_file(filename, verbose=0):
             lost_samples=("samples", "sum")))
 
     ut["share_of_recording"] = (ut["lost_samples"] / ls).sum()
+    print(filename, (ut["lost_samples"] / ls).sum())
 
 
     if verbose or 1:
@@ -111,13 +112,14 @@ def summarize():
     faulty = 0
     not_found = 0
     correct = 0
-    for i in range(1, 42):
-        print()
-        print("File", i)
+    # for i in range(1, 42):
+    for i in [1, 9, 18, 20, 22, 23, 24, 39, 41]:
         
         try:
             filename = f"{i}_rawdata.tsv"
             _cdf, _csmp, _cmsg, cls, clm = one_file(filename)
+            print()
+            print("File", i)
             tot_ls += cls
             tot_lm += clm
             correct += 1
@@ -132,5 +134,5 @@ def summarize():
     print(f"Average amount of messages: {tot_lm/correct}")
     print(f"Faulty files (correct): {faulty} ({correct})")
 
-# one_file("3_rawdata.tsv", 1)
-summarize()
+one_file("22_rawdata.tsv", 1)
+# summarize()

@@ -1,0 +1,9 @@
+# Pakker for individual assignment (ex1, ex2a, ex2b)
+# Installer med:  uv pip install -r requirements.txt
+
+pandas<3          # 3.0 endret copy-on-write og string-dtype; oppgaven er skrevet aug 2025
+numpy
+matplotlib
+seaborn
+scikit-learn
+xgboost

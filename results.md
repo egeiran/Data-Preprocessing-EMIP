@@ -315,3 +315,104 @@ The distinction is the point. The velocity detector flags transitions that are *
 impossible*; IQR on coordinates flags positions that are merely *off-centre*. Only the first
 is an outlier.
 
+## Data transformation
+
+Code in `transform.py`, which covers encoding, scaling, splitting and the PCA bonus in one
+file. The order matters and is not the order the task lists them in - see the scaling section.
+
+The modelling table is the 1 275 062 rows where a program label is derivable: both code
+screens and both multiple-choice screens name their program in the stimulus filename.
+
+### 4a. Encoding
+
+| column | values | encoding | why |
+|---|---|---|---|
+| `program` (target) | vehicle / rectangle | label | binary, so 0/1 is all that is needed |
+| `Pupil Confidence` | 0 / 1 / 2 | ordinal, kept as integer | genuinely ordered, so one column preserves the order that one-hot would throw away |
+| `quality` | ok / interpolated | binary 0/1 | two levels, no order |
+| `screen_type` | code / choice | one-hot | unordered |
+| `language` | java / java2 / scala | one-hot | unordered, 3 levels |
+
+`drop_first=True` on the one-hot columns. The full dummy set is perfectly collinear (the
+levels sum to 1), which distorts PCA and breaks any linear model - the dummy-variable trap.
+
+16 columns are dropped, and the reasons are part of the decision:
+
+| dropped | reason |
+|---|---|
+| `pid` | the split key; as a feature it is participant identity |
+| `Time` | an absolute timestamp, no gaze information |
+| `Type` | constant after cleaning (SMP only) - it *was* categorical in the raw data, and our own cleaning removed its variance |
+| `Trial` | constant (1) in all 33 files |
+| `segment` | session position; the stimulus order is 19/12 counterbalanced, so it predicts the target 61/39 by experimental design |
+| `stimulus` | the target is derived from it |
+| `R POR X/Y` | byte-identical to `L POR X/Y` on 100% of valid rows |
+| 8 `CR` columns | correlated with `Raw` at r ~ 1.0, and they held the only sentinel zeros left after cleaning (up to 0.46% of rows) |
+
+That leaves **34 features, 29 of them continuous**.
+
+### 4b. Feature scaling
+
+The column ranges span four orders of magnitude:
+
+| column | min | max | range |
+|---|---|---|---|
+| `L POR X [px]` | 9.20 | 1865.82 | 1856.62 |
+| `L POR Y [px]` | 0.02 | 1079.97 | 1079.95 |
+| `velocity_deg_s` | 0.00 | 999.27 | 999.27 |
+| `R GVEC Z` | -1.00 | -0.75 | **0.25** |
+
+A factor of 7400 between the widest and narrowest. Any model that measures distance or follows
+a gradient - kNN, SVM, k-means, neural nets, PCA - would be driven almost entirely by the pixel
+columns, and the gaze-direction columns would contribute nothing. Standardization (z-score) is
+used rather than Min-Max because the extreme values were capped rather than removed in task 3,
+so the tails are still heavy and Min-Max would squash the bulk of each column into a narrow band.
+
+Only the 29 continuous columns are scaled. One-hot and ordinal columns are left alone: scaling
+a 0/1 dummy changes nothing a model can use and destroys its interpretability.
+
+**The scaler is fit on the training set only, which means scaling has to happen after the
+split - the reverse of the order the task lists.** Fitting on the full dataset would put the
+test set's mean and standard deviation into the training features, which is leakage. The
+verification is in the output: train continuous columns come out at mean 2.8e-09 and sd 1.000,
+while the test columns land at mean -0.072. The test set is *not* exactly centred, and that is
+the proof the scaler never saw it.
+
+### 5. Data splitting
+
+```
+train   976 680 rows / 24 participants / 55.9% vehicle
+test    298 382 rows /  7 participants / 56.6% vehicle
+overlap in participants: 0
+```
+
+`GroupShuffleSplit` on `pid`, 80/20 by participant. **A random row split would be invalid
+here.** Samples are 4 ms apart and adjacent ones are nearly identical, so a random split puts
+near-duplicates of the same moment in both sets. The model would be tested on data it had
+effectively already seen and would score near-perfectly while having learned nothing that
+generalises - the classic form of overfitting that a test set exists to detect. Splitting on
+participant means the test set is 7 people the model has never seen.
+
+The class balance survives the split (55.9% vs 56.6% vehicle) without stratifying, which is
+worth checking rather than assuming, since grouping and stratifying can conflict.
+
+*Limitation:* one participant saw the Scala version of the stimuli, so `language_scala` is
+all-zero on one side of any group split - a level present in a single participant cannot
+appear in both sets. The effect of that version is therefore untestable, and this is a
+property of the dataset rather than of the split.
+
+### 6. PCA (bonus)
+
+Fitted on the scaled training features only, for the same leakage reason as the scaler.
+
+| variance retained | components (of 29) |
+|---|---|
+| 90% | **8** |
+| 95% | 10 |
+| 99% | 15 |
+
+The first component alone carries 27.9%. The redundancy is structural rather than accidental:
+`Raw`, `POR`, `EPOS` and `GVEC` are four different representations of one physical quantity -
+where the eye is pointing - so a single component captures most of it. 29 columns of sensor
+output contain roughly 8 dimensions of information.
+

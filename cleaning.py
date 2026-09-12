@@ -51,13 +51,11 @@ def preprocess(data_in, verbose=0):
     rate = data_in.attrs.get("sample_rate") or 250   # Hz, read from the file header
     n_smp = len(smp)   # number of measurements; MSG rows do not count
 
-    # Fill holes with Holes instead of a lot of "0-rows"
-    # TODO: Convert data["Type"] to 1 or 0 -> Encoding (maybe use holes here as well (Blink and loss))
-
     def isInValid(smp, screen=(1920, 1080)):
         l_bad = (smp["L Validity"] == 0)
         r_bad = (smp["R Validity"] == 0)
-        # <= 0, not < 0: 0.0 is the "no data" sentinel (8223 samples are valid at (0,0))
+        # <= 0, not < 0: 0.0 is the "no data" sentinel. 8435 samples in 32 of 33 files pass
+        # both validity flags and sit on the screen, yet have a coordinate at exactly 0
         x_out = (smp["L POR X [px]"] <= 0) | (smp["L POR X [px]"] > screen[0]) \
               | (smp["R POR X [px]"] <= 0) | (smp["R POR X [px]"] > screen[0])
         y_out = (smp["L POR Y [px]"] <= 0) | (smp["L POR Y [px]"] > screen[1]) \
@@ -91,7 +89,7 @@ def preprocess(data_in, verbose=0):
     ut = holes[["samples", "ms", "type"]]
 
     ut = (ut.groupby("type")
-            .agg(antall=("ms", "size"),
+            .agg(count=("ms", "size"),
             median_ms=("ms", "median"),
             max_ms=("ms", "max"),
             lost_samples=("samples", "sum")))
@@ -211,7 +209,7 @@ def test_outliersets():
         except FileNotFoundError:
             continue
         except Exception as e:
-            print(f"{path}: {type(e).__name__}: {e}")   # ikke svelg feil stille
+            print(f"{path}: {type(e).__name__}: {e}")   # do not swallow errors silently
             continue
 
         q = smp["quality"].value_counts()

@@ -19,6 +19,11 @@ DROPPED = {
     "stimulus": "the target is derived from it",
     "R POR X [px]": "byte-identical to L POR X on 100% of valid rows",
     "R POR Y [px]": "byte-identical to L POR Y on 100% of valid rows",
+    # After cleaning a validity flag of 0 only survives on interpolated rows, so together
+    # the two flags add almost nothing beyond quality (98.8% agreement on interpolated
+    # rows). They are 0/1 and would otherwise be standardized as if continuous
+    "L Validity": "redundant with quality after cleaning",
+    "R Validity": "redundant with quality after cleaning",
 }
 
 # The corneal reflections are intermediate sensor readings, correlated with Raw at r ~ 1.0,
@@ -122,7 +127,7 @@ def report():
     print(f"after scaling, train continuous mean {Xtr[continuous].to_numpy().mean():+.2e}, "
           f"sd {Xtr[continuous].to_numpy().std():.3f}")
     print(f"test  continuous mean {Xte[continuous].to_numpy().mean():+.3f} "
-          f"(not exactly 0 - the scaler never saw it, which is the point)")
+          f"(not exactly 0, consistent with the scaler never having seen it)")
 
     print(f"\n=== 6. PCA (bonus) ===")
     pca = PCA().fit(Xtr[continuous])

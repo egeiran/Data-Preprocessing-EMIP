@@ -8,3 +8,4 @@ seaborn
 scikit-learn
 xgboost
 openpyxl          # 211_rawdata.xlsx er lagret som Excel, ikke tsv
+pyarrow           # parquet-cache for det ferdige datasettet

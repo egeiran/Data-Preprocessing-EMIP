@@ -106,8 +106,88 @@ Loss per participant with the final definition (33 files, 211 included):
 | 37 | 57051 | 89.2 | 0.7 | 10.1 |
 | *(20 remaining files)* | | | | < 10 |
 
-Seven participants lose more than 25% of the recording. TODO: decide and justify a cut-off
-for excluding participants (22 and 39 are clearly unusable).
+**Excluding data: per (participant, stimulus), not per participant**
+
+`gap %` measures the whole session, including breaks, calibration and instruction screens.
+What we actually model is code reading, so the two metrics disagree badly:
+
+| pid | vehicle s | rectangle s | usable code s | gap % |
+|---|---|---|---|---|
+| 22 | 1.1 | 2.2 | 3.3 | 97.3 |
+| 39 | 15.4 | 6.5 | 21.9 | 66.5 |
+| 1 | 45.4 | 12.6 | 58.0 | 46.7 |
+| 3 | 36.5 | 28.5 | 65.0 | 7.9 |
+| 18 | 92.3 | 5.0 | 97.3 | 55.0 |
+| 41 | 65.6 | 40.9 | 106.5 | 29.8 |
+| 7 | 106.9 | 87.7 | 194.6 | 5.8 |
+
+- Participant 41 loses 30% of the session and still has 106.5 s of code reading, above the
+  median. A percentage cut-off would have removed one of the better recordings.
+- Participant 1 loses 47% but its largest single gap is only 6.0 s (6% of its loss), so the
+  loss is spread-out blinking rather than a break.
+- Participant 18 is not noisy in general - it has 92.3 s on vehicle and 5.0 s on rectangle.
+  That is a missing stimulus, not a bad participant.
+
+Cells are therefore kept if they hold at least 20 s of usable data (`coverage()`), which drops
+**6 of 66 cells**: 22 and 39 lose both stimuli and so disappear entirely, while 1 and 18 lose
+only their rectangle cell. Excluding on `gap %` at 25% would have dropped 7 whole participants.
+
+**Hole taxonomy**
+
+The first blink/loss split at 150 ms did not survive contact with the distribution: 79% of all
+holes are under 20 ms and the median hole is 8 ms, i.e. two samples. Those are sensor dropouts,
+not blinks - counting them gave a blink rate of 26/s, which is physiologically impossible.
+
+| bucket | share of holes | share of lost samples |
+|---|---|---|
+| < 20 ms | 78.8% | 10.7% |
+| 20-50 ms | 7.7% | 4.9% |
+| 50-100 ms | 3.5% | 5.0% |
+| 100-150 ms | 2.6% | 6.5% |
+| 150-400 ms | 5.2% | 23.4% |
+| > 400 ms | 2.1% | 49.5% |
+
+Holes are now split three ways: `dropout` (< 50 ms, sensor noise), `blink` (50-400 ms, the
+physiological range) and `loss` (> 400 ms, track loss or looking away). For file 2 that gives
+18 blinks with a median of 122 ms - a textbook blink duration - against 347 dropouts at 4 ms.
+Note the last two rows: 7% of the holes account for 73% of all lost samples.
+
+**Using the gaps instead of only removing them**
+
+Where the eye was during a gap is unrecoverable, but *that* there was a gap is behaviour. Two
+features are extracted before the gap rows are dropped: `blink_rate` and `gap_fraction`, both
+over a trailing 5 s window. Blink rate is an established index of visual attention demand, and
+long losses usually mean the participant looked away rather than that the sensor failed.
+
+They are computed over a trailing window rather than per stimulus on purpose: a per-stimulus
+mean would encode the target and leak into the model. Blink rate now ranges 0-0.4 blinks/s.
+
+**The resulting dataset**
+
+`build_dataset()` assembles the cleaned per-participant frames into one table, applies the
+coverage rule, drops the `gap` rows and caches the result as parquet (the full parse takes
+~30 s, and every later step re-reads the cache instead).
+
+| | |
+|---|---|
+| rows | 1 416 540 |
+| columns | 46 |
+| participants | 33 (31 with code-reading data) |
+| code-reading rows | 842 462 (501 619 vehicle / 340 843 rectangle) |
+| `ok` / `interpolated` | 1 386 850 / 29 690 |
+| size | 100 MB parquet, 482 MB in memory |
+
+2.1% of the surviving rows are interpolated. Participants 22 and 39 contribute no code-reading
+data, as intended. Only the code-reading cell is dropped for a thin cell, not the matching
+multiple-choice screen, since the exclusion is about the quality of the reading data.
+
+**Stimulus labels**
+
+Each sample is labelled with the stimulus on screen, derived from the MSG rows. Only `.jpg`
+messages change the screen - a `UE-mouseclick` message is an event on the screen that is
+already showing, so treating it as a boundary fragmented the multiple-choice segments (in
+file 2 it split 464 samples off `mupliple_choice_rectangle`). Clicks are ignored for
+segmentation, which leaves 8 clean segments per participant.
 
 **211_rawdata.xlsx**
 

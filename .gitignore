@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Cache for det ferdige datasettet (100 MB, bygges av build_dataset())
+dataset.parquet

@@ -78,14 +78,25 @@ sample invalid if *any* of these hold, and the last two turned out to matter:
 **Handling the holes**
 
 Holes are found per stimulus segment (the MSG rows), never across a change of stimulus.
-A hole shorter than 100 ms is linearly interpolated against `Time`; anything longer is kept
+A hole shorter than 150 ms is linearly interpolated against `Time`; anything longer is kept
 as NaN and labelled a gap. Every sample gets a `quality` column of `ok` / `interpolated` /
 `gap`, so it stays visible later how much of the analysis rests on invented values.
 
-Rationale for the 100 ms cut-off: a blink lasts roughly 100-150 ms, and gaze does not move
-during one, so the endpoints of a short hole are a good estimate of what happened inside it.
-Over a multi-second loss the participant may have looked anywhere, and a straight line between
-the endpoints would be fiction.
+Rationale for the 150 ms cut-off: gaze does not move during a blink, so the endpoints of a
+short hole are a good estimate of what happened inside it. Over a multi-second loss the
+participant may have looked anywhere, and a straight line between the endpoints would be
+fiction.
+
+150 ms rather than 100 ms so that the threshold agrees with the `blink` category: at 100 ms
+holes were being *classified* as blinks and then *treated* as unrecoverable loss, which is
+incoherent. Averaged over the 33 participants the change moves 1.42 percentage points from
+gap to interpolated (mean gap 16.19% -> 14.77%), and the result is not sensitive to the exact
+value - anywhere from 150 to 250 ms gives the same output.
+
+No margin is trimmed around the blinks. Partial eyelid occlusion on the bordering samples
+would have argued for one, but the pupil diameter column is clean on every row that survives
+cleaning (1.87-5.68 mm, no zeros), and post-blink diameter sits within 0.5% of the pre-blink
+baseline, so there is nothing to trim.
 
 Loss per participant with the final definition (33 files, 211 included):
 
@@ -134,7 +145,8 @@ only their rectangle cell. Excluding on `gap %` at 25% would have dropped 7 whol
 
 **Hole taxonomy**
 
-The first blink/loss split at 150 ms did not survive contact with the distribution: 79% of all
+The original two-way blink/loss split at 150 ms did not survive contact with the
+distribution (note this 150 ms is unrelated to `SHORT_MS`, which happens to share the value): 79% of all
 holes are under 20 ms and the median hole is 8 ms, i.e. two samples. Those are sensor dropouts,
 not blinks - counting them gave a blink rate of 26/s, which is physiologically impossible.
 
@@ -170,16 +182,16 @@ coverage rule, drops the `gap` rows and caches the result as parquet (the full p
 
 | | |
 |---|---|
-| rows | 1 416 540 |
+| rows | 1 440 469 |
 | columns | 46 |
 | participants | 33 (31 with code-reading data) |
-| code-reading rows | 842 462 (501 619 vehicle / 340 843 rectangle) |
-| `ok` / `interpolated` | 1 386 850 / 29 690 |
-| size | 100 MB parquet, 482 MB in memory |
+| code-reading rows | 856 785 (511 009 vehicle / 345 776 rectangle) |
+| interpolated | 3.7% of surviving rows |
+| size | ~100 MB parquet, ~490 MB in memory |
 
-2.1% of the surviving rows are interpolated. Participants 22 and 39 contribute no code-reading
-data, as intended. Only the code-reading cell is dropped for a thin cell, not the matching
-multiple-choice screen, since the exclusion is about the quality of the reading data.
+Participants 22 and 39 contribute no code-reading data, as intended. For a thin cell only the
+code-reading screen is dropped, not the matching multiple-choice screen, since the exclusion
+is about the quality of the reading data.
 
 **Stimulus labels**
 

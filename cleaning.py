@@ -31,7 +31,7 @@ def load_xlsx(path):   # 211 is the same format, just saved as Excel
     df.attrs["sample_rate"] = rate
     return df
 
-SHORT_MS = 100     # holes shorter than this are interpolated; longer ones stay holes
+SHORT_MS = 150     # interpolate up to here; matches the blink range, so blinks get filled
 DROPOUT_MS = 50    # under this a hole is sensor noise, not a blink (79% of holes are <20 ms)
 BLINK_MAX_MS = 400 # blink duration is roughly 50-400 ms; above that it is track loss
 WINDOW_S = 5       # trailing window for the gap features

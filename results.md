@@ -283,15 +283,33 @@ structured rather than unimodal-with-tails, and Tukey's fence lands *inside* the
 | `L POR X [px]` | [409, 1389] | 0-1920 |
 | `L POR Y [px]` | [-127, 968] | 0-1080 |
 
-The X fence covers 51% of the screen width, which makes the entire right 28% of the screen
-"outlier" territory. It flags 14 399 samples, and every one of them is inside the screen and
-passed the validity check - they are real gaze points. Worse, the largest group of them
-(6253 samples) falls on `instruction_calibration.jpg`, whose targets are deliberately placed
-at Position(96;810), Position(1824;270) and the other corners. IQR would reject the
-calibration data for being exactly where the calibration asked the participant to look.
+It flags 14 399 samples, and every one of them is inside the screen and passed the validity
+check - they are real gaze points. The Y fence shows the problem from the other side: its
+lower bound is negative, so it cannot flag anything below the midline at all.
 
-The Y fence shows the same problem from the other side: its lower bound is negative, so it
-cannot flag anything below the midline at all.
+The damage is not evenly spread, and the code-reading data is nearly untouched:
+
+| stimulus | % of that screen flagged | share of all flags |
+|---|---|---|
+| `instruction_calibration.jpg` | 10.7% | 43.4% |
+| `mupliple_choice_vehicle.jpg` | 1.8% | 25.5% |
+| `mupliple_choice_rectangle.jpg` | 1.3% | 19.3% |
+| `vehicle_java2.jpg` | 0.0% | 0.5% |
+| `rectangle_java2.jpg` | 0.0% | 0.2% |
+
+During code reading the gaze spans only p1=667 to p99=1238 px - 88% of it sits in a 480 px
+band around x = 900 - so the fence cuts just 137 of 856 785 code-reading samples. Nobody looks
+at the screen edges while reading centred code.
+
+The decisive case is the calibration screen: IQR flags **10.7%** of it, and its targets are
+deliberately placed at Position(96;810), Position(1824;270) and the other corners. IQR rejects
+the calibration data for being exactly where the calibration instructed the participant to
+look - a counterexample that works precisely because the ground truth is known by construction.
+
+A position-based filter *can* be defensible, but as a scoping decision rather than an outlier
+rule: restricting analysis to an area of interest, with the boundary taken from the stimulus
+image. That fence comes from the geometry, not from Q1 and Q3. It is not applied here, since
+the stimulus images are not available and the reading gaze is already tightly clustered.
 
 The distinction is the point. The velocity detector flags transitions that are *physically
 impossible*; IQR on coordinates flags positions that are merely *off-centre*. Only the first

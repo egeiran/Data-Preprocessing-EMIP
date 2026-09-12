@@ -207,4 +207,93 @@ The 33rd participant is stored as Excel rather than tsv, but the content is iden
 header block, same 45 columns, same stimulus sequence, 50739 samples. It is read via
 `load_xlsx()` instead of being dropped: at 3.3% gaps it is one of the cleaner recordings, and
 excluding it for a file-format reason would not be defensible.
-- 
+-
+
+## Handling outliers
+
+Two detectors, on the two columns where the methods are actually valid, plus an explicit
+argument for not using IQR on the gaze coordinates. Code in `outliers.py`.
+
+**Saccade velocity (Z-score is not needed - the limit is physical)**
+
+The screen geometry is identical in all 33 headers: 1920x1080 px on 344x194 mm at 700 mm
+viewing distance. That makes the threshold derivable rather than guessed:
+
+```
+px/mm       = 1920 / 344       = 5.58
+1 deg at 700 mm = 2*700*tan(0.5 deg) = 12.22 mm  ->  68.2 px/deg
+1000 deg/s  = 68 200 px/s      = 273 px per 4 ms sample
+```
+
+No human saccade exceeds ~1000 deg/s, so anything above it is a measurement artefact rather
+than a fast eye. Velocity is computed as `hypot(dPOR) / dt`, grouped by `(pid, segment)` so no
+difference crosses a participant or a stimulus change, and `dt` comes from `Time` so the gaps
+dropped earlier cannot masquerade as instant jumps.
+
+Result: **178 of 1 440 469 samples (0.012%)** exceed the limit; median speed is 6.6 deg/s, p99
+is 244 deg/s and the maximum is 2061 deg/s. The p99 is the reassuring number - it sits in the
+normal saccade range, so the detector is catching the tail and not the signal.
+
+*Decision: remove.* An impossible velocity means the sample's coordinates are wrong, and at
+0.012% the cost of deleting them is nil. Velocity is kept as a feature (`velocity_deg_s`).
+
+**Pupil diameter (Z-score, per participant)**
+
+Baseline pupil size differs substantially between people, so a corpus-wide Z-score would flag
+every participant with naturally large pupils instead of finding artefacts. It is therefore
+computed within participant. At |z| > 3, **16 425 samples (1.14%)** are outliers - against
+0.27% for a normal distribution, which confirms the heavy tail.
+
+Both prescribed methods are applied to this column, since it is the one where both are valid:
+
+| | global IQR | per-pid IQR | per-pid Z>3 |
+|---|---|---|---|
+| `L Mapped Diameter` | 3.09% | 1.84% | 0.68% |
+| `R Mapped Diameter` | 0.88% | 1.95% | 0.85% |
+
+Two things follow. First, the **global IQR disagrees between the eyes by a factor of 3.5**
+(3.09% vs 0.88%) while the per-participant IQR agrees closely (1.84% vs 1.95%) - the global
+fence is being distorted by mixing participants with different baseline pupil sizes, which is
+the same argument as for the Z-score and now shown rather than asserted. Second, IQR is the
+more sensitive of the two here: it flags roughly 2.5x as many samples, and only 14 of the
+16 425 Z-outliers fall outside the IQR fence, so **the Z set is essentially nested inside the
+IQR set**. That is expected - with a heavy tail the outliers inflate the standard deviation
+and partly hide each other, whereas the quartiles barely move.
+
+Z-score at |z| > 3 is used for the capping because it is the more conservative of the two, and
+the capped value has a direct interpretation (3 standard deviations from that participant's own
+mean).
+
+*Decision: cap, do not remove.* Pupil dilation is a real physiological signal and one of the
+more informative columns here; deleting its extremes would delete the effect a model is meant
+to find. Clipping to +/-3 sd within participant keeps the row and bounds the leverage.
+
+*Why not transform.* The third option in the task is transformation, normally a log to pull in
+a long right tail. It is not warranted: skew is 0.82 and the full range is 1.87-5.68 mm, a
+factor of 3. A log would compress a distribution that is already close to symmetric and would
+cost the interpretability of a column measured in millimetres.
+
+**Why not IQR on the gaze coordinates**
+
+Reading happens in the left half of the screen, so the coordinate distribution is spatially
+structured rather than unimodal-with-tails, and Tukey's fence lands *inside* the stimulus:
+
+| column | IQR fence | screen |
+|---|---|---|
+| `L POR X [px]` | [409, 1389] | 0-1920 |
+| `L POR Y [px]` | [-127, 968] | 0-1080 |
+
+The X fence covers 51% of the screen width, which makes the entire right 28% of the screen
+"outlier" territory. It flags 14 399 samples, and every one of them is inside the screen and
+passed the validity check - they are real gaze points. Worse, the largest group of them
+(6253 samples) falls on `instruction_calibration.jpg`, whose targets are deliberately placed
+at Position(96;810), Position(1824;270) and the other corners. IQR would reject the
+calibration data for being exactly where the calibration asked the participant to look.
+
+The Y fence shows the same problem from the other side: its lower bound is negative, so it
+cannot flag anything below the midline at all.
+
+The distinction is the point. The velocity detector flags transitions that are *physically
+impossible*; IQR on coordinates flags positions that are merely *off-centre*. Only the first
+is an outlier.
+

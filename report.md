@@ -333,8 +333,6 @@ One participant saw the Scala version of the stimuli, so `language_scala` is all
 side of any group split. A level present in a single participant cannot appear in both sets,
 so that version's effect is untestable.
 
----
-
 ## 6. Dimensionality Reduction (bonus)
 
 PCA fitted on the scaled training features only, for the same leakage reason as the

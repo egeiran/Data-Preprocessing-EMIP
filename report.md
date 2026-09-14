@@ -1,9 +1,6 @@
 # Assignment 1: Data Preprocessing
 
-**Eivind Systad Geiran** · IT3212 · EMIP eye-tracking dataset
-
-Code: `explore.py` (task 1), `cleaning.py` (task 2), `outliers.py` (task 3), `transform.py`
-(tasks 4 to 6), `figures.py`. Every number and figure below is produced by these scripts.
+**Eivind Systad Geiran** - IT3212 - EMIP eye-tracking dataset
 
 ## The dataset
 

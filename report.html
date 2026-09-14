@@ -1,0 +1,473 @@
+<meta charset='utf-8'><style>
+body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;line-height:1.45;max-width:17cm;margin:2cm auto;color:#222}
+h1,h2{border-bottom:1px solid #ccc;padding-bottom:.2em} h2{page-break-before:auto}
+table{border-collapse:collapse;margin:1em 0;font-size:9.5pt} th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}
+th{background:#f2f2f2} code{background:#f4f4f4;padding:1px 4px;font-size:9.5pt} pre{background:#f4f4f4;padding:8px;font-size:9pt}
+img{max-width:100%} em{color:#555} hr{border:0;border-top:1px solid #ccc}
+</style><h1>Assignment 1: Data Preprocessing</h1>
+<p><strong>Eivind Systad Geiran</strong> - IT3212 - EMIP eye-tracking dataset</p>
+<h2>The dataset</h2>
+<p>The EMIP dataset [1] holds eye-tracking recordings of programmers reading two short programs
+(<code>vehicle</code> and <code>rectangle</code>), each shown in one of three versions (Java, a second Java layout,
+or Scala), and answering a comprehension question about each. The 33 files used
+here are 250 Hz SMI RED250 recordings of 33 000 to 84 000 samples and 45 columns, each behind a
+metadata header of about 30-40 lines. The rows are of two types: <code>SMP</code> measurements and <code>MSG</code>
+events that mark which stimulus is on screen.</p>
+<p>One property of the tracker drives every cleaning decision: it writes a row whether or not it
+saw the eye, and when it did not, the row is all zeros. Missing data therefore arrives as zeros
+that look like measurements.</p>
+<h2>1. Data Exploration</h2>
+<p><strong>Structure:</strong> 1.71 M measurement rows and 377 messages across 33 files. <code>Time</code> and <code>Trial</code>
+are <code>int64</code>, <code>Type</code> is text, and the other 42 columns are <code>float64</code> once the row types are
+separated. All 33 headers state 250 Hz. Within a stimulus the largest gap between consecutive
+samples is 71 ms, and three files contain a pause of up to 275 s before the first stimulus.
+<code>explore.py</code> prints the data type and full summary statistics of all 45 columns; only the
+parts that drive later decisions are reproduced here.</p>
+<p><strong>First rows</strong> (participant 2, selected rows and columns) show the central problem in
+miniature: every value is <code>0.0</code>, yet nothing is missing in any form pandas can detect.</p>
+<table>
+<thead>
+<tr>
+<th>row</th>
+<th>Time</th>
+<th>Type</th>
+<th>L POR X</th>
+<th>L POR Y</th>
+<th>L Validity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>15313372175</td>
+<td>SMP</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>15313376169</td>
+<td>SMP</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td>21</td>
+<td>15458834887</td>
+<td>MSG</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr>
+<td>22</td>
+<td>15458839343</td>
+<td>SMP</td>
+<td>523.65</td>
+<td>354.31</td>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+<p>Real measurements begin after the calibration message on row 21. The <code>MSG</code> row is <code>NaN</code> in the
+numeric columns because its payload is text stored in <code>L Raw X [px]</code>, which forces that column
+to <code>object</code> for the whole file. Data types are only meaningful after the row types are
+separated.</p>
+<p><strong>Summary statistics</strong> (participant 2, cleaned, n = 41 946):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>mean</th>
+<th>std</th>
+<th>min</th>
+<th>median</th>
+<th>max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>L POR X [px]</code></td>
+<td>899.54</td>
+<td>221.62</td>
+<td>351.16</td>
+<td>938.53</td>
+<td>1824.94</td>
+</tr>
+<tr>
+<td><code>L POR Y [px]</code></td>
+<td>423.94</td>
+<td>165.73</td>
+<td>2.39</td>
+<td>375.42</td>
+<td>1066.10</td>
+</tr>
+<tr>
+<td><code>L Mapped Diameter [mm]</code></td>
+<td>2.90</td>
+<td>0.18</td>
+<td>2.54</td>
+<td>2.89</td>
+<td>4.37</td>
+</tr>
+</tbody>
+</table>
+<p>Gaze centres near x = 900 on a 1920-wide screen, and pupil diameter occupies a narrow physical
+band. Both facts are used in tasks 3 and 4.</p>
+<p><strong>Columns with no information:</strong> <code>Aux1</code>, <code>L Plane</code>, <code>R Plane</code>, <code>Timing</code> and <code>Frame</code> hold one
+unique value or none and are dropped in every file. <code>Trial</code> is also constant and is dropped in
+task 4.</p>
+<p><strong>Categorical columns and their unique values:</strong> <code>Type</code> (SMP/MSG), <code>L Validity</code> and
+<code>R Validity</code> (0/1), <code>Pupil Confidence</code> (0/1/2), and the message text, which is either a
+stimulus image (<code>vehicle_java2.jpg</code>, <code>mupliple_choice_rectangle.jpg</code>, ...) or a
+<code>UE-mouseclick left x=… y=…</code> event with coordinates inside a string.</p>
+<p><strong>Redundancy:</strong> 50 column pairs correlate above |r| = 0.95, and the reason is structural:
+<code>Raw</code>, <code>CR</code>, <code>POR</code>, <code>EPOS</code> and <code>GVEC</code> are five representations of where the eye is pointing.
+The extreme case is <code>L POR X/Y</code> against <code>R POR X/Y</code>, which are identical on 100 % of valid
+rows in every file: the tracker fuses both eyes into one point and writes it twice. Task 4
+drops the duplicates and task 6 measures how much of the rest is redundant.</p>
+<p><strong>Missing data and outliers:</strong> 18 % of raw samples are invalid and 0.012 % are physically
+impossible; tasks 2 and 3 quantify both.</p>
+<h2>2. Data Cleaning</h2>
+<h3>What counts as missing</h3>
+<p>A sample is invalid if any of three conditions holds:</p>
+<ol>
+<li><code>L Validity == 0</code> or <code>R Validity == 0</code></li>
+<li>either eye's point of regard outside the 1920 × 1080 screen</li>
+<li>either eye's point of regard at exactly 0</li>
+</ol>
+<p>Conditions 2 and 3 catch samples the tracker itself calls valid. Condition 3 alone accounts
+for 8435 samples across 32 of the 33 files, because <code>0.0</code> is the tracker's no-data sentinel
+and a strict <code>&lt; 0</code> test lets it through as a look at the screen corner. The right eye is lost
+more often than the left, so <code>L Validity</code> alone understates the loss: participant 9 moves from
+19 % to 41 %, participant 34 from 5 % to 16 %.</p>
+<h3>Classifying the holes</h3>
+<p>Consecutive invalid samples are grouped into holes by run-length encoding, never across a
+change of stimulus. Their durations are strongly bimodal:</p>
+<p><img alt="Share of holes and share of lost samples, by hole duration" src="figures/fig1_holes.png" /></p>
+<p><em>Figure 1. Hole durations. 74 % of holes are under 20 ms but cost 5 % of the
+lost data; the 9 % over 150 ms cost 82 %.</em></p>
+<p>The median hole is 8 ms, two samples. A two-way blink/loss split at 150 ms counted this sensor
+noise as blinking and produced peak blink rates of 26 per second, so holes are split three
+ways instead:</p>
+<table>
+<thead>
+<tr>
+<th>type</th>
+<th>duration</th>
+<th>interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dropout</code></td>
+<td>&lt; 50 ms</td>
+<td>sensor noise</td>
+</tr>
+<tr>
+<td><code>blink</code></td>
+<td>50 to 400 ms</td>
+<td>blink; [2] reports roughly 100 to 400 ms, and 50 ms is a cautious floor</td>
+</tr>
+<tr>
+<td><code>loss</code></td>
+<td>&gt; 400 ms</td>
+<td>track loss or looking away</td>
+</tr>
+</tbody>
+</table>
+<p>For participant 2 this gives 18 blinks at a median of 122 ms, a typical blink duration,
+against 347 dropouts at 4 ms.</p>
+<h3>Handling the missing values</h3>
+<p>Mean, median and mode imputation are invalid for gaze position. The mean gaze point is a
+screen location where the participant was not looking at that instant, so imputing it
+fabricates a fixation. Mode imputation is meaningless for a continuous coordinate.</p>
+<p>Holes up to 150 ms are linearly interpolated against <code>Time</code>. Gaze position typically changes
+little across a short blink, so a straight line between the endpoints is a reasonable
+approximation of what happened inside it. The cut-off was raised from 100 to
+150 ms so that a typical blink (median 122 ms above) is filled instead of discarded; this
+moves 1.42 percentage points of the average session from gap to interpolated. Blinks of 150
+to 400 ms keep the <code>blink</code> label but are not filled: over 40 or more samples the endpoints
+say little about the interior. The exclusion decision
+below is the same for any cut-off from 100 to 250 ms.</p>
+<p>Longer holes are kept as <code>NaN</code> and the rows deleted. Over a multi-second loss the participant
+may have looked anywhere, so a straight line between the endpoints would invent data.</p>
+<p>Interpolation runs against <code>Time</code>, not row number, and never across a stimulus change.
+<code>interpolate(limit=n)</code> cannot be used: it fills the first <em>n</em> samples of every hole regardless
+of length, so a 20-second loss would receive 150 ms of invented values. Each sample keeps a
+<code>quality</code> label (<code>ok</code>, <code>interpolated</code>, <code>gap</code>) so later results can be traced to real data.</p>
+<h3>Excluding participants</h3>
+<p>The obvious rule, dropping participants above some gap percentage, measures the wrong thing.
+Gap % is a property of the session, including breaks, calibration and instruction screens,
+while the data being modelled is code reading.</p>
+<p><img alt="Gap percentage against usable code-reading seconds, per participant" src="figures/fig2_exclusion.png" /></p>
+<p><em>Figure 2. The two metrics are nearly unrelated. A 25 % gap rule (shaded) would discard
+participant 41, which has above-median usable data.</em></p>
+<p>Participant 41 loses 28 % of its session yet has 110 s of code reading, above the median of
+100 s. Participant 1 loses 45 %, but its largest single gap is 5.1 s, which points to
+spread-out blinking and not to a break. Participant 18 has 95 s on <code>vehicle</code> and 5 s on
+<code>rectangle</code>, so it is missing one stimulus and is otherwise fine. Exclusion therefore operates
+on (participant, stimulus) cells, keeping any with at least 20 s of usable data. That drops 6
+of 66 cells where a 25 % gap rule would drop 6 whole participants: 22 and 39 lose both
+stimuli, 1 and 18 lose only <code>rectangle</code>.</p>
+<h3>Using the gaps</h3>
+<p>Where the eye was during a gap is unrecoverable, but the fact that there was a gap is
+behaviour: blink rate drops sharply during reading [2], and long losses usually mean the
+participant looked away. Before the gap rows are deleted, <code>blink_rate</code> and <code>gap_fraction</code> are
+computed over a trailing 5 s window. The window is trailing because a per-stimulus aggregate
+would encode the target.</p>
+<p><strong>Result: 1 440 469 rows, 46 columns, no <code>NaN</code>. 3.7 % of the surviving rows are interpolated
+(3.3 % of the raw samples).</strong></p>
+<h2>3. Handling Outliers</h2>
+<h3>Detection</h3>
+<p><strong>Saccade velocity:</strong> All 33 headers give the same geometry, 1920 × 1080 px on 344 × 194 mm
+at 700 mm viewing distance, so the threshold is a physical limit and can be derived:</p>
+<pre><code>px/mm = 1920/344 = 5.58 ;  1° at 700 mm = 2·700·tan(0.5°) = 12.22 mm  →  68.2 px/°
+1000 °/s = 68 200 px/s = 273 px per 4 ms sample
+</code></pre>
+<p>Peak saccade velocity in humans is about 700 °/s [3]. The limit is set at 1000 °/s to leave
+a margin for measurement noise on a 4 ms difference, and the data confirm the choice: counts
+fall smoothly to 81 in the 900 to 1000 band and rise again to 101 in the 1000 to 1500 band, so
+the tail past 1000 is detached from the saccade distribution. Velocity is computed as
+<code>hypot(ΔPOR)/Δt</code>, grouped by (participant, segment) so no difference crosses a participant or
+a stimulus change.</p>
+<p><img alt="Distribution of gaze velocity with the 1000 deg/s limit" src="figures/fig3_velocity.png" /></p>
+<p><em>Figure 3. Velocity, both axes logarithmic. Median 6.6 °/s and p99 244 °/s sit inside the
+normal saccade range; the tail past the limit is detached.</em></p>
+<p>178 of 1 440 469 samples (0.012 %) exceed 1000 °/s, with a maximum of 2061 °/s.</p>
+<p><strong>Pupil diameter:</strong> Baseline pupil size differs substantially between people, so a corpus-wide
+Z-score would flag everyone with naturally large pupils, and the score is computed within
+participant. Both prescribed methods were applied to this column, since it is the one where
+both are valid:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>global IQR</th>
+<th>per-participant IQR</th>
+<th>per-participant |z| &gt; 3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>L Mapped Diameter</code></td>
+<td>3.09 %</td>
+<td>1.84 %</td>
+<td>0.68 %</td>
+</tr>
+<tr>
+<td><code>R Mapped Diameter</code></td>
+<td>0.88 %</td>
+<td>1.95 %</td>
+<td>0.85 %</td>
+</tr>
+</tbody>
+</table>
+<p>The global IQR disagrees between the two eyes by a factor of 3.5 while the per-participant IQR
+agrees closely, which is direct evidence that mixing participants distorts the fence. Only 14
+of the 16 425 Z-outliers fall outside the IQR fence, so the Z set is nested inside it, as
+expected when a heavy tail inflates the standard deviation while the quartiles barely move.</p>
+<h3>Why IQR is not used on the gaze coordinates</h3>
+<p>Reading happens in the left-centre of the screen, so the coordinate distribution is a spatial
+map with no tails to speak of, and Tukey's 1.5 × IQR fence lands inside the stimulus.</p>
+<p><img alt="Gaze x distribution for code reading and the calibration screen, with the IQR fence" src="figures/fig4_iqr.png" /></p>
+<p><em>Figure 4. The IQR fence on <code>L POR X</code> is [409, 1389] on a 1920-wide screen. Calibration gaze
+spills past it both ways; reading gaze crosses it in 137 of 856 785 samples.</em></p>
+<p>The fence flags 14 399 samples, all inside the screen and all survivors of cleaning. On the
+calibration screen IQR flags 10.7 % of samples: its targets sit deliberately at
+Position(96;810), Position(1824;270) and the other corners, so IQR rejects data for being
+exactly where the participant was instructed to look. Velocity flags transitions that are
+physically impossible, whereas IQR on coordinates flags positions that are merely off-centre.</p>
+<h3>Decisions</h3>
+<p><strong>Velocity outliers: remove.</strong> An impossible velocity means the coordinates are wrong, and at
+0.012 % deletion costs nothing. Velocity is retained as a feature.</p>
+<p><strong>Pupil outliers: cap at ±3 sd within participant.</strong> Dilation is real physiological signal and
+one of the more informative columns. Deleting its extremes would delete the effect a model is
+meant to detect, whereas clipping keeps the row and bounds its leverage. The Z-score sets the
+bound because it is the more conservative of the two and directly interpretable. The bound is
+computed per participant, so no statistic crosses the train/test boundary drawn in task 5.</p>
+<p><strong>Not transform:</strong> A log transform pulls in a long right tail. Skew is 0.82 and the range is
+1.87 to 5.68 mm, a factor of three, so the distribution is already near-symmetric. A log would
+compress it for no gain and cost the interpretability of a column measured in millimetres.</p>
+<h2>4. Data Transformation</h2>
+<p>The modelling table holds the rows where a program label is derivable, since both the code
+screens and the multiple-choice screens name their program in the stimulus filename: 1 278 741
+rows, minus the 3 679 multiple-choice rows of participant 39, whose code screens were excluded
+in task 2 and whose language is therefore unknown. That leaves 1 275 062 rows. The target is
+which program was on screen (<code>vehicle</code> / <code>rectangle</code>), 56.1 % <code>vehicle</code>.</p>
+<h3>4a. Encoding categorical data</h3>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>values</th>
+<th>encoding</th>
+<th>justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>program</code> (target)</td>
+<td>vehicle / rectangle</td>
+<td>label</td>
+<td>binary; 0/1 is sufficient and ordering is irrelevant for a target</td>
+</tr>
+<tr>
+<td><code>Pupil Confidence</code></td>
+<td>0 / 1 / 2</td>
+<td>ordinal (one integer column)</td>
+<td>genuinely ordered; one-hot would discard the ordering the column exists to express</td>
+</tr>
+<tr>
+<td><code>quality</code></td>
+<td>ok / interpolated</td>
+<td>binary 0/1</td>
+<td>two levels, no order</td>
+</tr>
+<tr>
+<td><code>screen_type</code></td>
+<td>code / choice</td>
+<td>one-hot</td>
+<td>unordered, so integers would impose a false ranking</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td>java / java2 / scala</td>
+<td>one-hot</td>
+<td>unordered, 3 levels</td>
+</tr>
+</tbody>
+</table>
+<p><code>drop_first=True</code> on the one-hot columns. The complete dummy set is perfectly collinear, since
+the levels sum to 1, which distorts PCA and makes a linear model unidentifiable.</p>
+<p>Eighteen columns are dropped:</p>
+<table>
+<thead>
+<tr>
+<th>dropped</th>
+<th>reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pid</code></td>
+<td>the split key; as a feature it is participant identity</td>
+</tr>
+<tr>
+<td><code>Time</code></td>
+<td>an absolute counter, no gaze information</td>
+</tr>
+<tr>
+<td><code>Type</code>, <code>Trial</code></td>
+<td>constant; <code>Type</code> was categorical in the raw data, but cleaning removed its variance</td>
+</tr>
+<tr>
+<td><code>segment</code></td>
+<td>session position; stimulus order is counterbalanced 19/12, so it predicts the target 61/39 by design</td>
+</tr>
+<tr>
+<td><code>stimulus</code></td>
+<td>the target is derived from it</td>
+</tr>
+<tr>
+<td><code>L Validity</code>, <code>R Validity</code></td>
+<td>a 0 survives only on interpolated rows, so together they add almost nothing beyond <code>quality</code></td>
+</tr>
+<tr>
+<td><code>R POR X</code>, <code>R POR Y</code></td>
+<td>identical to the <code>L POR</code> pair</td>
+</tr>
+<tr>
+<td>8 <code>CR</code> columns</td>
+<td>r ≈ 1.0 with <code>Raw</code>, and held the only sentinel zeros identified after cleaning (0.46 % of rows)</td>
+</tr>
+</tbody>
+</table>
+<p><code>segment</code> is the important one: nothing in its values reveals the leak, only knowledge of how
+the experiment was run.</p>
+<p><strong>32 features remain, 27 of them continuous.</strong></p>
+<h3>4b. Feature scaling</h3>
+<p><img alt="Range of the five narrowest and five widest features" src="figures/fig5_scaling.png" /></p>
+<p><em>Figure 5. Feature ranges before scaling, log axis: <code>L POR X</code> spans 1857 units and <code>R GVEC Z</code>
+spans 0.25.</em></p>
+<p>Any model that measures distance or follows a gradient (kNN, SVM, k-means, neural networks,
+and PCA itself) treats one unit of every feature as equivalent. With a 7400-fold spread the
+pixel columns would determine every distance and the gaze-direction columns would contribute
+nothing, however informative they are. That is why scaling is necessary.</p>
+<p>Standardization is used instead of min-max because min-max is set by the two most extreme
+values of a column, and several columns were never capped. Velocity is the clearest case: its
+median is 6.6 °/s on a scale that reaches 1000, so Min-Max would press nearly every row into
+the bottom 1 % of the range. Standardization is set by the mean and standard deviation of the
+bulk, so one extreme value cannot flatten the rest. Only the 27 continuous columns are scaled:
+standardizing a 0/1 dummy changes nothing usable and destroys its interpretability.</p>
+<p>The scaler is fit on the training set only, so scaling happens after the split, the reverse
+of the order in the task list. Fitting on the full dataset would put the test set's mean and
+standard deviation into the training features, a form of leakage. The output is
+consistent with this: training columns come out at mean 5 × 10⁻⁹ and sd 1.000, while test
+columns land at mean −0.078, as expected when the scaler has not seen them.</p>
+<h2>5. Data Splitting</h2>
+<pre><code>train   976 680 rows / 24 participants / 55.9 % vehicle
+test    298 382 rows /  7 participants / 56.6 % vehicle
+participant overlap: 0
+</code></pre>
+<p><code>GroupShuffleSplit</code> on participant with <code>test_size</code> 0.2 and seed 42, realised as 24/7
+participants (77/23) and 76.6/23.4 % of rows.</p>
+<p>Training error measures how well a model memorised; only withheld data measures whether it
+learned anything transferable. Without a test set, added complexity always appears to improve
+performance, because memorising is always available, and that is overfitting. The split
+prevents it in practice because model choices, such as complexity or when to stop training,
+are made on the held-out score rather than the training score, so a model that has only
+memorised is rejected.</p>
+<p>A random row split would be invalid here. Samples are 4 ms apart and adjacent ones are nearly
+identical, so a random split places near-duplicates of the same moment in both sets. The
+model would be evaluated on data it had effectively already seen and would score
+near-perfectly while learning nothing that generalises. Splitting on participant makes the
+test set seven people the model has never encountered.</p>
+<p>The class balance survives without stratifying (55.9 % against 56.6 %). Grouping and
+stratifying can conflict, so this was checked.</p>
+<p>One participant saw the Scala version of the stimuli, so <code>language_scala</code> is all-zero on one
+side of any group split. A level present in a single participant cannot appear in both sets,
+so that version's effect is untestable. This is a property of the dataset, not of the split.</p>
+<hr />
+<h2>6. Dimensionality Reduction (bonus)</h2>
+<p>PCA fitted on the scaled training features only, for the same leakage reason as the
+scaler.</p>
+<p><img alt="Cumulative explained variance against number of components" src="figures/fig6_pca.png" /></p>
+<p><em>Figure 6. Cumulative explained variance; the first component alone carries 29.9 %.</em></p>
+<table>
+<thead>
+<tr>
+<th>variance retained</th>
+<th>components (of 27)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>90 %</td>
+<td><strong>7</strong></td>
+</tr>
+<tr>
+<td>95 %</td>
+<td>9</td>
+</tr>
+<tr>
+<td>99 %</td>
+<td>13</td>
+</tr>
+</tbody>
+</table>
+<p>A 3.9-fold reduction at 90 % variance retained. Because the redundancy identified in task 1
+is structural, the reduction is both large and safe: 27 continuous columns hold roughly seven
+dimensions of information.</p>
+<p>The cost is interpretability. <code>L POR X</code> means "gaze x in pixels", whereas PC1 is a weighted
+blend of every sensor channel and means nothing physical. PCA is therefore reported, but the
+original features are kept as primary so that results stay explainable.</p>
+<h2>References</h2>
+<ol>
+<li>EMIP Workshop. <em>Distributed Collection of Eye Movement Data in Programming: Dataset</em>.
+   https://emipws.org/dataset/ (accessed 14 September 2026)</li>
+<li>Wikipedia. <em>Blinking</em>. https://en.wikipedia.org/wiki/Blinking (accessed 14 September 2026)</li>
+<li>Wikipedia. <em>Saccade</em>. https://en.wikipedia.org/wiki/Saccade (accessed 14 September 2026)</li>
+</ol>

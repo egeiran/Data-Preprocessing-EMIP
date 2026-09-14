@@ -2,6 +2,9 @@
 
 **Eivind Systad Geiran** - IT3212 - EMIP eye-tracking dataset
 
+Code: https://github.com/egeiran/Data-Preprocessing-EMIP (`explore.py` task 1, `cleaning.py` 2, `outliers.py` 3,
+`transform.py` 4 to 6, `figures.py`).
+
 ## The dataset
 
 The EMIP dataset [1] holds eye-tracking recordings of programmers reading two short programs
@@ -21,8 +24,8 @@ that look like measurements.
 are `int64`, `Type` is text, and the other 42 columns are `float64` once the row types are
 separated. All 33 headers state 250 Hz. Within a stimulus the largest gap between consecutive
 samples is 71 ms, and three files contain a pause of up to 275 s before the first stimulus.
-`explore.py` prints the data type and full summary statistics of all 45 columns; only the
-parts that drive later decisions are reproduced here.
+`explore.py` prints dtype and full statistics for all 45 columns; only the parts that drive
+later decisions appear here.
 
 **First rows** (participant 2, selected rows and columns) show the central problem in
 miniature: every value is `0.0`, yet nothing is missing in any form pandas can detect.
@@ -36,10 +39,10 @@ miniature: every value is `0.0`, yet nothing is missing in any form pandas can d
 
 Real measurements begin after the calibration message on row 21. The `MSG` row is `NaN` in the
 numeric columns because its payload is text stored in `L Raw X [px]`, which forces that column
-to `object` for the whole file. Data types are only meaningful after the row types are
-separated.
+to `object` for the whole file.
 
-**Summary statistics** (participant 2, cleaned, n = 41 946):
+**Summary statistics** (participant 2, cleaned, n = 41 946; on raw data the sentinel zeros
+make every mean and minimum meaningless):
 
 |                          | mean   | std    | min    | median | max     |
 | ------------------------ | ------ | ------ | ------ | ------ | ------- |
@@ -48,7 +51,7 @@ separated.
 | `L Mapped Diameter [mm]` | 2.90   | 0.18   | 2.54   | 2.89   | 4.37    |
 
 Gaze centres near x = 900 on a 1920-wide screen, and pupil diameter occupies a narrow physical
-band. Both facts are used in tasks 3 and 4.
+band.
 
 **Columns with no information:** `Aux1`, `L Plane`, `R Plane`, `Timing` and `Frame` hold one
 unique value or none and are dropped in every file. `Trial` is also constant and is dropped in
@@ -200,7 +203,7 @@ both are valid:
 
 The global IQR disagrees between the two eyes by a factor of 3.5 while the per-participant IQR
 agrees closely, which is direct evidence that mixing participants distorts the fence. Only 14
-of the 16 425 Z-outliers fall outside the IQR fence, so the Z set is nested inside it, as
+of the 16 425 Z-outliers are not also IQR outliers, so the Z set is nested inside the IQR set, as
 expected when a heavy tail inflates the standard deviation while the quartiles barely move.
 
 ### Why IQR is not used on the gaze coordinates
@@ -231,7 +234,7 @@ bound because it is the more conservative of the two and directly interpretable.
 computed per participant, so no statistic crosses the train/test boundary drawn in task 5.
 
 **Not transform:** A log transform pulls in a long right tail. Skew is 0.82 and the range is
-1.87 to 5.68 mm, a factor of three, so the distribution is already near-symmetric. A log would
+1.87 to 5.68 mm, a factor of three, so the distribution is only moderately skewed. A log would
 compress it for no gain and cost the interpretability of a column measured in millimetres.
 
 
@@ -272,7 +275,7 @@ Eighteen columns are dropped:
 `segment` is the important one: nothing in its values reveals the leak, only knowledge of how
 the experiment was run.
 
-**32 features remain, 27 of them continuous.**
+**32 features remain, 27 of them continuous** (46 + velocity + 3 derived − 18 dropped − target + 1 extra language dummy).
 
 ### 4b. Feature scaling
 
@@ -324,12 +327,11 @@ model would be evaluated on data it had effectively already seen and would score
 near-perfectly while learning nothing that generalises. Splitting on participant makes the
 test set seven people the model has never encountered.
 
-The class balance survives without stratifying (55.9 % against 56.6 %). Grouping and
-stratifying can conflict, so this was checked.
+The class balance survives without stratifying (55.9 % against 56.6 %).
 
 One participant saw the Scala version of the stimuli, so `language_scala` is all-zero on one
 side of any group split. A level present in a single participant cannot appear in both sets,
-so that version's effect is untestable. This is a property of the dataset, not of the split.
+so that version's effect is untestable.
 
 ---
 
@@ -363,3 +365,9 @@ original features are kept as primary so that results stay explainable.
    https://emipws.org/dataset/ (accessed 14 September 2026)
 2. Wikipedia. *Blinking*. https://en.wikipedia.org/wiki/Blinking (accessed 14 September 2026)
 3. Wikipedia. *Saccade*. https://en.wikipedia.org/wiki/Saccade (accessed 14 September 2026)
+
+## AI declaration
+
+Claude (Anthropic) was used as an assistant: very little in tasks 1 and 2, more in tasks 3 to
+6, for writing code, for the figure scripts, and for editing the report text. Every method
+choice, number and interpretation was checked by the author.

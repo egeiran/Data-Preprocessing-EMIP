@@ -15,8 +15,6 @@ One property of the tracker drives every cleaning decision: it writes a row whet
 saw the eye, and when it did not, the row is all zeros. Missing data therefore arrives as zeros
 that look like measurements.
 
----
-
 ## 1. Data Exploration
 
 **Structure:** 1.71 M measurement rows and 377 messages across 33 files. `Time` and `Trial`

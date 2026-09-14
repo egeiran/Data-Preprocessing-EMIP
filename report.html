@@ -6,6 +6,8 @@ th{background:#f2f2f2} code{background:#f4f4f4;padding:1px 4px;font-size:9.5pt} 
 img{max-width:100%} em{color:#555} hr{border:0;border-top:1px solid #ccc}
 </style><h1>Assignment 1: Data Preprocessing</h1>
 <p><strong>Eivind Systad Geiran</strong> - IT3212 - EMIP eye-tracking dataset</p>
+<p>Code: https://github.com/egeiran/Data-Preprocessing-EMIP (<code>explore.py</code> task 1, <code>cleaning.py</code> 2, <code>outliers.py</code> 3,
+<code>transform.py</code> 4 to 6, <code>figures.py</code>).</p>
 <h2>The dataset</h2>
 <p>The EMIP dataset [1] holds eye-tracking recordings of programmers reading two short programs
 (<code>vehicle</code> and <code>rectangle</code>), each shown in one of three versions (Java, a second Java layout,
@@ -21,8 +23,8 @@ that look like measurements.</p>
 are <code>int64</code>, <code>Type</code> is text, and the other 42 columns are <code>float64</code> once the row types are
 separated. All 33 headers state 250 Hz. Within a stimulus the largest gap between consecutive
 samples is 71 ms, and three files contain a pause of up to 275 s before the first stimulus.
-<code>explore.py</code> prints the data type and full summary statistics of all 45 columns; only the
-parts that drive later decisions are reproduced here.</p>
+<code>explore.py</code> prints dtype and full statistics for all 45 columns; only the parts that drive
+later decisions appear here.</p>
 <p><strong>First rows</strong> (participant 2, selected rows and columns) show the central problem in
 miniature: every value is <code>0.0</code>, yet nothing is missing in any form pandas can detect.</p>
 <table>
@@ -73,9 +75,9 @@ miniature: every value is <code>0.0</code>, yet nothing is missing in any form p
 </table>
 <p>Real measurements begin after the calibration message on row 21. The <code>MSG</code> row is <code>NaN</code> in the
 numeric columns because its payload is text stored in <code>L Raw X [px]</code>, which forces that column
-to <code>object</code> for the whole file. Data types are only meaningful after the row types are
-separated.</p>
-<p><strong>Summary statistics</strong> (participant 2, cleaned, n = 41 946):</p>
+to <code>object</code> for the whole file.</p>
+<p><strong>Summary statistics</strong> (participant 2, cleaned, n = 41 946; on raw data the sentinel zeros
+make every mean and minimum meaningless):</p>
 <table>
 <thead>
 <tr>
@@ -115,7 +117,7 @@ separated.</p>
 </tbody>
 </table>
 <p>Gaze centres near x = 900 on a 1920-wide screen, and pupil diameter occupies a narrow physical
-band. Both facts are used in tasks 3 and 4.</p>
+band.</p>
 <p><strong>Columns with no information:</strong> <code>Aux1</code>, <code>L Plane</code>, <code>R Plane</code>, <code>Timing</code> and <code>Frame</code> hold one
 unique value or none and are dropped in every file. <code>Trial</code> is also constant and is dropped in
 task 4.</p>
@@ -267,7 +269,7 @@ both are valid:</p>
 </table>
 <p>The global IQR disagrees between the two eyes by a factor of 3.5 while the per-participant IQR
 agrees closely, which is direct evidence that mixing participants distorts the fence. Only 14
-of the 16 425 Z-outliers fall outside the IQR fence, so the Z set is nested inside it, as
+of the 16 425 Z-outliers are not also IQR outliers, so the Z set is nested inside the IQR set, as
 expected when a heavy tail inflates the standard deviation while the quartiles barely move.</p>
 <h3>Why IQR is not used on the gaze coordinates</h3>
 <p>Reading happens in the left-centre of the screen, so the coordinate distribution is a spatial
@@ -289,7 +291,7 @@ meant to detect, whereas clipping keeps the row and bounds its leverage. The Z-s
 bound because it is the more conservative of the two and directly interpretable. The bound is
 computed per participant, so no statistic crosses the train/test boundary drawn in task 5.</p>
 <p><strong>Not transform:</strong> A log transform pulls in a long right tail. Skew is 0.82 and the range is
-1.87 to 5.68 mm, a factor of three, so the distribution is already near-symmetric. A log would
+1.87 to 5.68 mm, a factor of three, so the distribution is only moderately skewed. A log would
 compress it for no gain and cost the interpretability of a column measured in millimetres.</p>
 <h2>4. Data Transformation</h2>
 <p>The modelling table holds the rows where a program label is derivable, since both the code
@@ -387,7 +389,7 @@ the levels sum to 1, which distorts PCA and makes a linear model unidentifiable.
 </table>
 <p><code>segment</code> is the important one: nothing in its values reveals the leak, only knowledge of how
 the experiment was run.</p>
-<p><strong>32 features remain, 27 of them continuous.</strong></p>
+<p><strong>32 features remain, 27 of them continuous</strong> (46 + velocity + 3 derived − 18 dropped − target + 1 extra language dummy).</p>
 <h3>4b. Feature scaling</h3>
 <p><img alt="Range of the five narrowest and five widest features" src="figures/fig5_scaling.png" /></p>
 <p><em>Figure 5. Feature ranges before scaling, log axis: <code>L POR X</code> spans 1857 units and <code>R GVEC Z</code>
@@ -425,11 +427,10 @@ identical, so a random split places near-duplicates of the same moment in both s
 model would be evaluated on data it had effectively already seen and would score
 near-perfectly while learning nothing that generalises. Splitting on participant makes the
 test set seven people the model has never encountered.</p>
-<p>The class balance survives without stratifying (55.9 % against 56.6 %). Grouping and
-stratifying can conflict, so this was checked.</p>
+<p>The class balance survives without stratifying (55.9 % against 56.6 %).</p>
 <p>One participant saw the Scala version of the stimuli, so <code>language_scala</code> is all-zero on one
 side of any group split. A level present in a single participant cannot appear in both sets,
-so that version's effect is untestable. This is a property of the dataset, not of the split.</p>
+so that version's effect is untestable.</p>
 <hr />
 <h2>6. Dimensionality Reduction (bonus)</h2>
 <p>PCA fitted on the scaled training features only, for the same leakage reason as the
@@ -471,3 +472,7 @@ original features are kept as primary so that results stay explainable.</p>
 <li>Wikipedia. <em>Blinking</em>. https://en.wikipedia.org/wiki/Blinking (accessed 14 September 2026)</li>
 <li>Wikipedia. <em>Saccade</em>. https://en.wikipedia.org/wiki/Saccade (accessed 14 September 2026)</li>
 </ol>
+<h2>AI declaration</h2>
+<p>Claude (Anthropic) was used as an assistant: very little in tasks 1 and 2, more in tasks 3 to
+6, for writing code, for the figure scripts, and for editing the report text. Every method
+choice, number and interpretation was checked by the author.</p>

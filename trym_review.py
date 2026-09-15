@@ -1,5 +1,10 @@
 # Independent validation of Tasks 4–6 created by Trym.
 # This is not part of, or a replacement for, the original implementation.
+# The script is more complex than a standard validation because I had too little
+# RAM in WSL (about 4 GB) to run the entire process involving large data copies.
+# I therefore used AI to help me devise a solution that uses less memory:
+# processing one column at a time and performing PCA calculations in small batches,
+# using the same method choices as in the original implementation.
 """Read the existing cache only; print results without writing data or figures.
 
 Reuses the project's labelling, encoding, velocity and split definitions. Pupil
@@ -43,7 +48,7 @@ def main():
     schema = pq.read_schema(cache).names
     metadata = ["pid", "stimulus", "quality", "Pupil Confidence"]
     velocity_cols = ["pid", "segment", "Time", "L POR X [px]", "L POR Y [px]"]
-    print("Trym's independent review - existing cache, no file output", flush=True)
+    print("Trym's independent review, existing cache, no file output", flush=True)
     narrow = pd.read_parquet(cache, columns=velocity_cols)
     velocity = o.velocity(narrow)
     keep = ~(velocity > o.MAX_DEG_S)

@@ -357,6 +357,25 @@ blend of every sensor channel and means nothing physical. PCA is therefore repor
 original features are kept as primary so that results stay explainable.
 
 
+## Individual contributions
+
+Eivind Systad Geiran developed the original preprocessing pipeline and carried out the main analysis for Tasks 1–6.
+
+Trym Andreas Johnsen joined later and independently reviewed and validated the transformation pipeline for Tasks 4–6. I added a separate memory-efficient validation script,
+`trym_review.py`, to reproduce and verify the modelling dataset, participant-level train/test
+split, feature scaling and PCA explained-variance results. I verified that there is no
+participant overlap between the training and test sets and that scaling and PCA are based on training data only, avoiding information leakage from the test set in these transformations.
+The validation script is not a replacement for the original pipeline.
+
+## Personal reflection, Trym
+
+Before beginning working on this assignment, I mainly thought of data preprocessing as cleaning missing or incorrect values. 
+Reviewing the pipeline showed me that preprocessing also determines whether later machine learning results can be trusted. 
+I became aware that it is also important to split and transform the data in a way that gives a fair test later. 
+For example, data from the same participant should not be in both the training and test sets. 
+I also learned that scaling and PCA should be fitted using only the training data, and then the same transformations should be applied to the test data. 
+This prevents the test data from influencing how the training data is prepared.
+
 ## References
 
 1. EMIP Workshop. *Distributed Collection of Eye Movement Data in Programming: Dataset*.

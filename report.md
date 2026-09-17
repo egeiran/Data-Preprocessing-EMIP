@@ -359,7 +359,8 @@ original features are kept as primary so that results stay explainable.
 
 ## Individual contributions
 
-Eivind Systad Geiran developed the original preprocessing pipeline and carried out the main analysis for Tasks 1–6.
+Eivind Systad Geiran developed the preprocessing pipeline, carried out the analysis for tasks
+1 to 6, and wrote the corresponding report sections and figure scripts.
 
 Trym Andreas Johnsen joined later and independently reviewed and validated the transformation pipeline for Tasks 4–6. I added a separate memory-efficient validation script,
 `trym_review.py`, to reproduce and verify the modelling dataset, participant-level train/test
@@ -367,7 +368,22 @@ split, feature scaling and PCA explained-variance results. I verified that there
 participant overlap between the training and test sets and that scaling and PCA are based on training data only, avoiding information leakage from the test set in these transformations.
 The validation script is not a replacement for the original pipeline.
 
-## Personal reflection, Trym
+## Personal reflections
+
+### Eivind
+
+What I learned most from this task is how much of trusting a dataset happens before any model
+sees it. Nothing here was missing in a way pandas could detect: there were no `NaN` values,
+only zeros, because the tracker writes a row whether or not it saw the eye. Separating a real
+measurement from a sentinel zero turned out to be most of the work in task 2.
+
+It was also the first time I repaired data rather than discarding it. A short gap in the signal
+is a blink, not a failure, so interpolating it keeps the recording continuous where dropping
+the rows would leave a hole in the middle of a fixation. Deciding where that line falls - which
+gap is short enough to fill and which is track loss - was a judgement I had not had to make
+before.
+
+### Trym
 
 Before beginning working on this assignment, I mainly thought of data preprocessing as cleaning missing or incorrect values. 
 Reviewing the pipeline showed me that preprocessing also determines whether later machine learning results can be trusted. 

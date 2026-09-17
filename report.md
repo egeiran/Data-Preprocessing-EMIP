@@ -1,6 +1,6 @@
 # Assignment 1: Data Preprocessing
 
-**Eivind Systad Geiran** - IT3212 - EMIP eye-tracking dataset
+**Eivind Systad Geiran and Trym Andreas Johnsen** - IT3212 - EMIP eye-tracking dataset
 
 Code: https://github.com/egeiran/Data-Preprocessing-EMIP (`explore.py` task 1, `cleaning.py` 2, `outliers.py` 3,
 `transform.py` 4 to 6, `figures.py`).

@@ -58,6 +58,9 @@ def main():
 
     meta = pd.read_parquet(cache, columns=metadata)
     meta = t.label(meta.loc[keep])
+    # Index LABELS of the modelling rows. cleaning.py writes the cache with
+    # index=False, so these are also positions, but every lookup below uses .loc
+    # so the script stays correct if the cache ever carries an index of its own.
     positions = meta.index.to_numpy(copy=True)
     encoded, y, groups, _ = t.encode(meta)
     del meta
@@ -109,7 +112,7 @@ def main():
     expected_stds = []
     for j, col in enumerate(continuous):
         if col == "velocity_deg_s":
-            values = velocity.fillna(0).iloc[positions].to_numpy()
+            values = velocity.fillna(0).loc[positions].to_numpy()
         else:
             series = pd.read_parquet(cache, columns=[col])[col]
             if col in ["L Mapped Diameter [mm]", "R Mapped Diameter [mm]"]:

@@ -359,15 +359,36 @@ original features are kept as primary so that results stay explainable.
 
 ## Individual contributions
 
-Eivind Systad Geiran developed the original preprocessing pipeline and carried out the main analysis for Tasks 1–6.
+Eivind Systad Geiran developed the preprocessing pipeline, carried out the analysis for tasks
+1 to 6, and wrote the corresponding report sections and figure scripts.
 
-Trym Andreas Johnsen joined later and independently reviewed and validated the transformation pipeline for Tasks 4–6. I added a separate memory-efficient validation script,
-`trym_review.py`, to reproduce and verify the modelling dataset, participant-level train/test
-split, feature scaling and PCA explained-variance results. I verified that there is no
-participant overlap between the training and test sets and that scaling and PCA are based on training data only, avoiding information leakage from the test set in these transformations.
-The validation script is not a replacement for the original pipeline.
+Trym Andreas Johnsen joined later and reviewed the transformation pipeline for tasks 4 to 6,
+adding a separate validation script, `trym_review.py`. The script reuses the project's own
+labelling and encoding functions and checks their output, and reimplements the split, the
+scaling and the PCA independently: the scaler is fitted one column at a time, and the PCA
+variance spectrum comes from an eigendecomposition of the training covariance rather than from
+scikit-learn's solver. It confirms that no participant appears in both the training and the
+test set, and that the scaler and PCA are fitted on training data only. All reported numbers
+for tasks 4 to 6 were reproduced exactly. A second reason for the separate implementation is
+memory: the script reads one column at a time and accumulates the covariance in batches, so it
+peaks at about 1.3 GiB against the 4.0 GiB of `transform.py`, which does not fit in the memory
+available on the reviewing machine.
 
-## Personal reflection, Trym
+One detail the review made explicit: the per-participant pupil capping in task 3 uses all of a
+participant's retained rows, including screens outside the modelling set. Because the split is
+also per participant, those statistics never cross the train/test boundary, so this is not
+information leakage.
+
+The validation script reads the existing cache and writes nothing. It is a check on the
+pipeline, not a replacement for it.
+
+## Personal reflections
+
+### Eivind
+
+> **TODO (Eivind): skriv din egen refleksjon her før PDF-en lages.**
+
+### Trym
 
 Before beginning working on this assignment, I mainly thought of data preprocessing as cleaning missing or incorrect values. 
 Reviewing the pipeline showed me that preprocessing also determines whether later machine learning results can be trusted. 
@@ -385,6 +406,14 @@ This prevents the test data from influencing how the training data is prepared.
 
 ## AI declaration
 
-Claude (Anthropic) was used as an assistant: very little in tasks 1 and 2, more in tasks 3 to
-6, for writing code, for the figure scripts, and for editing the report text. Every method
-choice, number and interpretation was checked by the author.
+Claude (Anthropic) was used as an assistant by both authors.
+
+Eivind Systad Geiran used it very little in tasks 1 and 2 and more in tasks 3 to 6, for writing
+code, for the figure scripts, and for editing the report text.
+
+Trym Andreas Johnsen used it to design the memory-efficient structure of `trym_review.py`,
+because the full pipeline did not fit in the memory available on his machine. The method
+choices the script validates are taken from the original implementation, not suggested by the
+assistant.
+
+Every method choice, number and interpretation was checked by the authors.

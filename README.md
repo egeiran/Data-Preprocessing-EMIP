@@ -21,6 +21,7 @@ The data is not in the repository.
 | `outliers.py` | 3 | velocity limit, pupil Z-score and IQR, removal and capping |
 | `transform.py` | 4, 5, 6 | encoding, grouped split, scaling, PCA |
 | `figures.py` | all | writes `figures/fig1..fig6.png` |
+| `trym_review.py` | 4, 5, 6 | independent validation of the split, scaling and PCA; reads the cache, writes nothing |
 
 Each script imports the previous ones, so any of them can be run on its own with
 `.venv/bin/python <script>.py`. The first run parses all 33 files (about 30 s); later runs

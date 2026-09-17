@@ -359,7 +359,8 @@ original features are kept as primary so that results stay explainable.
 
 ## Individual contributions
 
-Eivind Systad Geiran developed the original preprocessing pipeline and carried out the main analysis for Tasks 1–6.
+Eivind Systad Geiran developed the preprocessing pipeline, carried out the analysis for tasks
+1 to 6, and wrote the corresponding report sections and figure scripts.
 
 Trym Andreas Johnsen joined later and independently reviewed and validated the transformation pipeline for Tasks 4–6. I added a separate memory-efficient validation script,
 `trym_review.py`, to reproduce and verify the modelling dataset, participant-level train/test
@@ -367,7 +368,17 @@ split, feature scaling and PCA explained-variance results. I verified that there
 participant overlap between the training and test sets and that scaling and PCA are based on training data only, avoiding information leakage from the test set in these transformations.
 The validation script is not a replacement for the original pipeline.
 
-## Personal reflection, Trym
+## Personal reflections
+
+### Eivind
+
+What I learned most from this preprocessing task is how you make sure data can be trusted. 
+There were no NaNs in this dataset, just zeros, and some invalid datapoints we had to factor out. 
+The tracker writes a row whether or not it saw the eye, so missing data does not look missing. 
+This was also my first time fixing holes by interpolating short periods of bad readings instead of just removing them. 
+A short gap is usually a blink, so filling it keeps the recording continuous. 
+
+### Trym
 
 Before beginning working on this assignment, I mainly thought of data preprocessing as cleaning missing or incorrect values. 
 Reviewing the pipeline showed me that preprocessing also determines whether later machine learning results can be trusted. 

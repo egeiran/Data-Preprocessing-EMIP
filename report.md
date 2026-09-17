@@ -372,16 +372,11 @@ The validation script is not a replacement for the original pipeline.
 
 ### Eivind
 
-What I learned most from this task is how much of trusting a dataset happens before any model
-sees it. Nothing here was missing in a way pandas could detect: there were no `NaN` values,
-only zeros, because the tracker writes a row whether or not it saw the eye. Separating a real
-measurement from a sentinel zero turned out to be most of the work in task 2.
-
-It was also the first time I repaired data rather than discarding it. A short gap in the signal
-is a blink, not a failure, so interpolating it keeps the recording continuous where dropping
-the rows would leave a hole in the middle of a fixation. Deciding where that line falls - which
-gap is short enough to fill and which is track loss - was a judgement I had not had to make
-before.
+What I learned most from this preprocessing task is how you make sure data can be trusted. 
+There were no NaNs in this dataset, just zeros, and some invalid datapoints we had to factor out. 
+The tracker writes a row whether or not it saw the eye, so missing data does not look missing. 
+This was also my first time fixing holes by interpolating short periods of bad readings instead of just removing them. 
+A short gap is usually a blink, so filling it keeps the recording continuous. 
 
 ### Trym
 

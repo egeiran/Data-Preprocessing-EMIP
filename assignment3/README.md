@@ -43,3 +43,19 @@ The first run produced 1,366 windows: 992 development and 374 locked-test window
 Three-fold development balanced accuracy was 0.500 for dummy, 0.611 for tree A
 and 0.507 for tree B. See the worklog for uncertainty, per-person results,
 coverage/interpolation limits and remaining assignment requirements.
+
+## Quality review and bounded model comparison
+
+V1 results above are preserved. V2 adds at least 80% directly measured time to
+the original rules; see `quality_policy.json`, `comparison_plan.json` and WORKLOG.
+V2 has 961 development windows from the same 23 people, plus 369 locked-test
+windows. No test model results are used to set the policy.
+
+```bash
+.venv/bin/python -B assignment3/src/quality.py
+.venv/bin/python -B assignment3/src/quality.py --apply
+```
+
+Quality evidence is in `results/quality/`; V2 features are in ignored
+`cache/windows_v2.parquet`. The first command audits development quality; the
+second applies the declared policy and records all selection counts.

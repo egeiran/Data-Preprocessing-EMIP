@@ -1,0 +1,9 @@
+{
+  "version": "v2",
+  "decision_basis": "development quality distribution, before new model scores",
+  "base_policy": "retain all V1 coverage and maximum-gap rules",
+  "min_measured_fraction": 0.8,
+  "interpretation": "at least 1.6 of 2 seconds must have direct sample support",
+  "threshold_status": "pragmatic operational threshold, not a validated physiological standard",
+  "test_participants": ["2", "6", "8", "18", "25", "28", "37"]
+}

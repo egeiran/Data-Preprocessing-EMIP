@@ -1,0 +1,78 @@
+{
+  "policy": {
+    "version": "v2",
+    "decision_basis": "development quality distribution, before new model scores",
+    "base_policy": "retain all V1 coverage and maximum-gap rules",
+    "min_measured_fraction": 0.8,
+    "interpretation": "at least 1.6 of 2 seconds must have direct sample support",
+    "threshold_status": "pragmatic operational threshold, not a validated physiological standard",
+    "test_participants": [
+      "2",
+      "6",
+      "8",
+      "18",
+      "25",
+      "28",
+      "37"
+    ]
+  },
+  "subsets": {
+    "development": {
+      "before": {
+        "windows": 992,
+        "participants": 23,
+        "displays": 46,
+        "classes": {
+          "1": 562,
+          "0": 430
+        },
+        "nominal_window_seconds": 1984.0,
+        "supported_seconds": 1978.406376
+      },
+      "after": {
+        "windows": 961,
+        "participants": 23,
+        "displays": 46,
+        "classes": {
+          "1": 546,
+          "0": 415
+        },
+        "nominal_window_seconds": 1922.0,
+        "supported_seconds": 1916.652135
+      },
+      "lost_people": [],
+      "single_class_people": []
+    },
+    "locked_test": {
+      "before": {
+        "windows": 374,
+        "participants": 7,
+        "displays": 13,
+        "classes": {
+          "1": 228,
+          "0": 146
+        },
+        "nominal_window_seconds": 748.0,
+        "supported_seconds": 746.315166
+      },
+      "after": {
+        "windows": 369,
+        "participants": 7,
+        "displays": 13,
+        "classes": {
+          "1": 224,
+          "0": 145
+        },
+        "nominal_window_seconds": 738.0,
+        "supported_seconds": 736.4234240000001
+      },
+      "lost_people": [],
+      "single_class_people": [
+        "18"
+      ]
+    }
+  },
+  "v2_windows_sha256": "34a2b0f7c6bd2d514958ae923a062b65c834c8b6f88b636f4435c387d62fae58",
+  "quality_source_sha256": "26735e68515f2c5fdbd024f43769a10a900418a79146e953f832141f42024fb4",
+  "test_predictions": "not performed"
+}

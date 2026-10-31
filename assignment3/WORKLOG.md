@@ -2,6 +2,67 @@
 
 ## Current session: review and local commits
 
+### Quality decision and comparison plan — declared before new model scores
+
+- Initial work preserved in `2be417f`. V1 files/results remain unchanged.
+- Ran `.venv/bin/python -B assignment3/src/quality.py`. Development V1 windows:
+  582/992 have no interpolated support; 152 have >0–5%, 180 >5–10%, 47 >10–20%,
+  and 31 >20%. Interpolated-time p50/p90/p95/p99/max = 0/7.60/13.39/46.45/75.87%.
+  Totals: 1,911.754818 s measured, 66.651558 s interpolated, 5.593624 s uncovered.
+- V1 coverage is defensible as a continuity rule, but insufficient as a direct
+  measurement-quality rule. Declare **V2: V1 rules plus at least 80% direct time
+  support** (1.6 s per 2 s window), in quality_policy.json. This is an operational
+  choice, not a validated physiological threshold. Expect at least the 31 highly
+  interpolated development windows to disappear, possibly a few more with gaps.
+  Do not restore pid 1 or alter the research question. Count actual effects next.
+- Alternatives: retain V1 and only stratify results by quality; use 90% direct
+  support (more data loss); discard all interpolation (stronger selection bias).
+  V2 retains modest blink interpolation while preventing interpolation-dominated
+  summaries. No new model scores or test model results informed this decision.
+- Time support follows V1's conservative 4 ms sample intervals, clipped at the
+  next sample/window edge. Label `ok` = direct; `interpolated` = filled; remainder
+  = uncovered, including small timing jitter. These are operational durations,
+  not proof of the physical truth of every tracker-labelled valid measurement.
+- Before tuning, comparison_plan.json fixes the primary metric: **equal-person
+  two-class balanced accuracy**. Secondary: equal-person macro-F1, pooled scores
+  and confusion counts. Single-class people stay in predictions but get null
+  two-class metrics, separate conditional recall and explicit class support.
+- Reuse the original three outer person folds for every model and both feature
+  groups. Use three inner person folds within each outer training set to select
+  parameters. Outer validation scores are never used for selection. This avoids
+  presenting the best score from a search as an unbiased validation result.
+- Equal budget: six settings each for tree, kNN and RBF-SVM. Tree depth 2/4/6 and
+  leaf size 5/10 control complexity and preserve the old 4/10 setting; k=5/15/31
+  and uniform/distance weights compare local vs smoother neighbours; C=.1/1/10
+  and gamma=.01/.1 compare regularisation and kernel locality after scaling.
+  These are small searches, not equally exhaustive optimisation of each family.
+- Scale kNN/SVM only inside training pipelines. No PCA: 13/11 interpretable
+  summaries are already small, and PCA would mix the position comparison.
+  Add a fixed position-only depth-one tree as a simple screen-layout control,
+  and keep the dummy. Controls are explicitly untuned, not search competitors.
+- Record inner tuning time separately from selected outer-refit fit time.
+  Warm up timing, then use five batches of repeated fit/predict calls, at least
+  20 ms per batch (cap 1,000 calls). Include scaler cost, exclude I/O/metrics.
+- Tuned A/B pipelines may select different parameters: their difference is a
+  pipeline comparison, not a causal effect of removing position. Small sample,
+  correlated windows and quality selection remain limitations. No ensembles or
+  deep models will run in this session.
+
+### Quality V2 — implemented, run and checked
+
+- Command: `.venv/bin/python -B assignment3/src/quality.py --apply`.
+  Results: `results/quality/`; ignored data: `cache/windows_v2.parquet`.
+- V2 removes 31 development windows (16 vehicle, 15 rectangle): **961 windows,
+  23 people, 546 vehicle / 415 rectangle**. No development person or class is lost.
+- Locked-test quality counts only: 369 windows, same seven people, 224 vehicle /
+  145 rectangle. Five windows removed. Pid 18 still has only vehicle; two-class
+  person scores must not be reported for that person later. No test model run.
+- Total 1,330 windows / 30 people. Initial V1 data and all initial validation
+  results remain unchanged. V2 changes only eligibility, not features or values.
+- Time-part conservation, exact agreement with V1 support, mixed-gap synthetic
+  example and locked-participant preservation pass. The 80% rule is not varied
+  in the model search. Comparison plan above is now fixed before model execution.
+
 - Existing staged files match the preceding A3 work; no unrelated changes found.
   Configured Git identity is Trym Johnsen's personal identity and is retained.
 - Reviewed the whole task PDF, worklog, source dependencies, staged diff and file

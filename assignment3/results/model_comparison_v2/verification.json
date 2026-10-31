@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "prediction_rows": 7688,
+  "people": 23,
+  "participant_metric_rows": 184,
+  "outer_results": 24,
+  "search_candidates": 108,
+  "timing_batches": 240,
+  "old_result_files_unchanged": 15,
+  "independent_sklearn_metrics_and_confusions": "PASS",
+  "selected_parameters_match_inner_search_only": "PASS",
+  "nested_person_separation": "PASS",
+  "locked_test_predictions": 0,
+  "timing_budget_or_declared_call_cap": "PASS",
+  "timing_batches_under_20ms_at_1000_call_cap": 6
+}

@@ -1,0 +1,204 @@
+{
+  "version": "v2_nested_comparison",
+  "seed": 42,
+  "dataset": "assignment3/cache/windows_v2.parquet",
+  "primary_metric": "mean two-class balanced accuracy with equal weight per validation participant",
+  "secondary_metrics": [
+    "equal-participant two-class macro-F1",
+    "pooled window metrics",
+    "confusion counts by participant and class"
+  ],
+  "single_class_policy": "retain windows and predictions; report class counts and observed-class recall; two-class metrics are null and excluded from their summaries",
+  "outer_folds": "assignment3/results/first_validation/folds.json",
+  "inner_group_folds": 3,
+  "selection": "pooled inner out-of-fold equal-participant primary metric; first configuration wins exact ties",
+  "feature_groups": [
+    "A_with_position",
+    "B_without_absolute_position"
+  ],
+  "grids": {
+    "tree": {
+      "max_depth": [
+        2,
+        4,
+        6
+      ],
+      "min_samples_leaf": [
+        5,
+        10
+      ]
+    },
+    "knn": {
+      "n_neighbors": [
+        5,
+        15,
+        31
+      ],
+      "weights": [
+        "uniform",
+        "distance"
+      ]
+    },
+    "svm_rbf": {
+      "C": [
+        0.1,
+        1.0,
+        10.0
+      ],
+      "gamma": [
+        0.01,
+        0.1
+      ]
+    }
+  },
+  "fixed": {
+    "class_weight_for_tree_and_svm": "balanced",
+    "knn_metric": "Euclidean",
+    "scaling": "StandardScaler inside kNN/SVM training pipelines only",
+    "PCA": "omitted: small interpretable feature sets; preserve position comparison"
+  },
+  "controls": [
+    "most_frequent_dummy",
+    "position_only_depth_one_tree"
+  ],
+  "timing": {
+    "batches": 5,
+    "min_seconds_per_batch": 0.02,
+    "max_calls_per_batch": 1000,
+    "warmup": true
+  },
+  "test_evaluation": "forbidden until analysis and model choices are locked",
+  "search_budget": "6 configurations x 3 inner folds x 3 outer folds for each model/feature group; no adaptive expansion",
+  "feature_lists": {
+    "A_with_position": [
+      "gaze_x_mean_px",
+      "gaze_y_mean_px",
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ],
+    "B_without_absolute_position": [
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ],
+    "position_only": [
+      "gaze_x_mean_px",
+      "gaze_y_mean_px"
+    ]
+  },
+  "outer_fold_manifest": [
+    {
+      "fold": 1,
+      "train_participants": [
+        "5",
+        "7",
+        "9",
+        "10",
+        "11",
+        "12",
+        "16",
+        "17",
+        "23",
+        "26",
+        "31",
+        "33",
+        "34",
+        "41",
+        "211"
+      ],
+      "validation_participants": [
+        "3",
+        "4",
+        "13",
+        "15",
+        "20",
+        "21",
+        "24",
+        "30"
+      ],
+      "train_windows": 677,
+      "validation_windows": 315
+    },
+    {
+      "fold": 2,
+      "train_participants": [
+        "3",
+        "4",
+        "11",
+        "12",
+        "13",
+        "15",
+        "16",
+        "20",
+        "21",
+        "23",
+        "24",
+        "30",
+        "33",
+        "41",
+        "211"
+      ],
+      "validation_participants": [
+        "5",
+        "7",
+        "9",
+        "10",
+        "17",
+        "26",
+        "31",
+        "34"
+      ],
+      "train_windows": 633,
+      "validation_windows": 359
+    },
+    {
+      "fold": 3,
+      "train_participants": [
+        "3",
+        "4",
+        "5",
+        "7",
+        "9",
+        "10",
+        "13",
+        "15",
+        "17",
+        "20",
+        "21",
+        "24",
+        "26",
+        "30",
+        "31",
+        "34"
+      ],
+      "validation_participants": [
+        "11",
+        "12",
+        "16",
+        "23",
+        "33",
+        "41",
+        "211"
+      ],
+      "train_windows": 674,
+      "validation_windows": 318
+    }
+  ]
+}

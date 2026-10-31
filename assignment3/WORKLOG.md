@@ -1,371 +1,262 @@
 # Assignment 3 shared worklog
 
-## Current session: review and local commits
+Main handover for Eivind and Trym. **Done** means executed and checked for this
+analysis, not that the final submission is complete. Planned work has no results.
+Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
 
-### Quality decision and comparison plan — declared before new model scores
+## Current handover
 
-- Initial work preserved in `2be417f`. V1 files/results remain unchanged.
-- Ran `.venv/bin/python -B assignment3/src/quality.py`. Development V1 windows:
-  582/992 have no interpolated support; 152 have >0–5%, 180 >5–10%, 47 >10–20%,
-  and 31 >20%. Interpolated-time p50/p90/p95/p99/max = 0/7.60/13.39/46.45/75.87%.
-  Totals: 1,911.754818 s measured, 66.651558 s interpolated, 5.593624 s uncovered.
-- V1 coverage is defensible as a continuity rule, but insufficient as a direct
-  measurement-quality rule. Declare **V2: V1 rules plus at least 80% direct time
-  support** (1.6 s per 2 s window), in quality_policy.json. This is an operational
-  choice, not a validated physiological threshold. Expect at least the 31 highly
-  interpolated development windows to disappear, possibly a few more with gaps.
-  Do not restore pid 1 or alter the research question. Count actual effects next.
-- Alternatives: retain V1 and only stratify results by quality; use 90% direct
-  support (more data loss); discard all interpolation (stronger selection bias).
-  V2 retains modest blink interpolation while preventing interpolation-dominated
-  summaries. No new model scores or test model results informed this decision.
-- Time support follows V1's conservative 4 ms sample intervals, clipped at the
-  next sample/window edge. Label `ok` = direct; `interpolated` = filled; remainder
-  = uncovered, including small timing jitter. These are operational durations,
-  not proof of the physical truth of every tracker-labelled valid measurement.
-- Before tuning, comparison_plan.json fixes the primary metric: **equal-person
-  two-class balanced accuracy**. Secondary: equal-person macro-F1, pooled scores
-  and confusion counts. Single-class people stay in predictions but get null
-  two-class metrics, separate conditional recall and explicit class support.
-- Reuse the original three outer person folds for every model and both feature
-  groups. Use three inner person folds within each outer training set to select
-  parameters. Outer validation scores are never used for selection. This avoids
-  presenting the best score from a search as an unbiased validation result.
-- Equal budget: six settings each for tree, kNN and RBF-SVM. Tree depth 2/4/6 and
-  leaf size 5/10 control complexity and preserve the old 4/10 setting; k=5/15/31
-  and uniform/distance weights compare local vs smoother neighbours; C=.1/1/10
-  and gamma=.01/.1 compare regularisation and kernel locality after scaling.
-  These are small searches, not equally exhaustive optimisation of each family.
-- Scale kNN/SVM only inside training pipelines. No PCA: 13/11 interpretable
-  summaries are already small, and PCA would mix the position comparison.
-  Add a fixed position-only depth-one tree as a simple screen-layout control,
-  and keep the dummy. Controls are explicitly untuned, not search competitors.
-- Record inner tuning time separately from selected outer-refit fit time.
-  Warm up timing, then use five batches of repeated fit/predict calls, at least
-  20 ms per batch (cap 1,000 calls). Include scaler cost, exclude I/O/metrics.
-- Tuned A/B pipelines may select different parameters: their difference is a
-  pipeline comparison, not a causal effect of removing position. Small sample,
-  correlated windows and quality selection remain limitations. No ensembles or
-  deep models will run in this session.
+- Initial A3 snapshot: `2be417f`; quality policy and search plan: `2c2edf8`.
+- V2 quality review and nested tree/kNN/RBF-SVM comparison are implemented, run
+  and checked. Start with `results/model_comparison_v2/summary.csv` and the
+  participant CSV. All V1 result files remain byte-for-byte unchanged.
+- No final-test predictions, final full-development model, ensembles or deep
+  network have been run. No push. Personal Git identity is Trym Johnsen's existing
+  configuration; no Git identity settings were changed.
+- Next: review class errors and these limits, resolve the course ambiguities,
+  then plan boosting/bagging. Do not expand searches just to improve scores.
 
-### Quality V2 — implemented, run and checked
+## Problem and scope
 
-- Command: `.venv/bin/python -B assignment3/src/quality.py --apply`.
-  Results: `results/quality/`; ignored data: `cache/windows_v2.parquet`.
-- V2 removes 31 development windows (16 vehicle, 15 rectangle): **961 windows,
-  23 people, 546 vehicle / 415 rectangle**. No development person or class is lost.
-- Locked-test quality counts only: 369 windows, same seven people, 224 vehicle /
-  145 rectangle. Five windows removed. Pid 18 still has only vehicle; two-class
-  person scores must not be reported for that person later. No test model run.
-- Total 1,330 windows / 30 people. Initial V1 data and all initial validation
-  results remain unchanged. V2 changes only eligibility, not features or values.
-- Time-part conservation, exact agreement with V1 support, mixed-gap synthetic
-  example and locked-participant preservation pass. The 80% rule is not varied
-  in the model search. Comparison plan above is now fixed before model execution.
+Can shared eye-tracking data identify which of two known code tasks, vehicle or
+rectangle, a new participant views, when task names and screenshots are withheld
+from model inputs? Use code screens only. This is a closed-set, offline study;
+not comprehension measurement, source reconstruction, arbitrary-program
+recognition, evidence of causation, or a privacy guarantee.
 
-- Existing staged files match the preceding A3 work; no unrelated changes found.
-  Configured Git identity is Trym Johnsen's personal identity and is retained.
-- Reviewed the whole task PDF, worklog, source dependencies, staged diff and file
-  sizes. `git diff --cached --check` and `src/checks.py` pass.
-- Preserve the initial implementation and its results as one coherent commit:
-  splitting its cross-imported scripts, evidence and handover would create
-  artificial incomplete states. New quality review and model comparison will be
-  separate steps. No raw recordings, window parquet or weights are added.
-- Next: inspect measured/interpolated/uncovered support before defining the
-  bounded comparison plan. Do not start ensembles or deep learning this session.
+The supervised experiment assumes labelled reference recordings and producer-side
+screen boundaries. It does not demonstrate an attack on an arbitrary unsegmented
+stream with no reference labels. Linear interpolation uses later samples.
 
-This is the main handover for Eivind and Trym. Status words mean:
-**planned** = not built; **implemented** = code exists; **run** = command completed
-and has recorded output. A result is not evidence until its run is recorded here.
+## Requirement status
 
-## Problem and scope — agreed
-
-Can eye-tracking data identify which of two known code tasks, `vehicle` or
-`rectangle`, a new participant is viewing? We study what sharing eye-tracking
-measurements can reveal about known screen content when the recipient receives
-neither task names nor screenshots. Task names are used only to construct ground
-truth and audit the data; models never receive them.
-
-We use code screens only, not multiple-choice screens. We compare features with
-and without absolute screen position. This is a small study of two known tasks,
-not a measure of comprehension, reconstruction of source code, or evidence of
-generalisation to arbitrary programs. No claim of real-time prediction is made.
-
-## A1 reference and starting state — checked
-
-- A1 reference commit: `8b3337370f02242ba2132a9e4b84ee2bc4669426`.
-- Git status was clean before this work. No local edits needed preserving.
-- No AGENTS.md was found in this repository or its ancestor directories.
-- A1 has 33 recordings (32 TSV + participant 211 in Excel), at nominal 250 Hz.
-  Each SMP row is one time point, normally about 4 ms after the previous one.
-- A1 cache: 1,440,469 rows, including non-code screens. It precedes velocity
-  removal and pupil clipping. Its timestamps and quality labels are available.
-- Reuse A1 loaders, cleaning decisions/cache, physical velocity definition and
-  original participant split. Keep all original code, raw data, cache, figures
-  and reports in place. Shared README and ignore rules may change.
-- The official A3 PDF was found at the root as
-  `IT3212-2026-Assignment 3 (1).pdf`; moved to `assignment3/assignment.pdf`.
-  No repository references to its old filename were found.
-- `results.md` contains older A1 feature/PCA counts (34/29; eight components at
-  90%). Current A1 code/report use 32/27 and seven components. Do not rewrite the
-  historical log. PDF/HTML exports also predate the latest report.md edits.
-
-## Requirement status — after the first run
-
-| # | Requirement | Current evidence and remaining work |
+| # | Requirement | Status and evidence |
 |---|---|---|
-| 1 | Practical and ML problem | Agreed above; formal report planned |
-| 2 | Justified preprocessing | Implemented and run; raw/cache consistency and window checks pass; full report pending |
-| 3 | Justified feature extraction | 13 summaries implemented, run and documented below |
-| 4 | Selection/reduction or justified omission | Explicit 13/11-feature selection implemented and compared; no A3 PCA |
-| 5 | Three algorithms and justification | One decision-tree algorithm run in two variants; dummy is a reference, not a second allowed algorithm; two algorithms still needed |
-| 6 | Explain comparison of three | Initial dummy/ablation comparison run; three-algorithm comparison pending |
-| 7 | Boosting and bagging, different base algorithms | Planned; wording open |
-| 8 | Basic vs boosting vs bagging vs transfer | Basic results only; ensembles pending and transfer undefined |
-| 9 | CNN or deep network with justified tuning | Planned |
-| 10 | Complexity, time, performance in practical context | Initial fit/predict times and tree depth/node counts recorded; full comparison pending |
+| 1 | Practical and ML problem | Done: scope above; final report still needed |
+| 2 | Justified preprocessing | Done for this analysis: A1 reuse and V2 time-quality rule |
+| 3 | Justified feature extraction | Done: documented 13 window summaries |
+| 4 | Selection/reduction or justified omission | Done: 13/11-feature selection; no PCA, reasons below |
+| 5 | Three algorithms and justification | Done: tree, kNN and kernel SVM, equal bounded search budgets |
+| 6 | Compare/explain three algorithms | Done for development: nested OOF comparison and class/person errors |
+| 7 | Boosting/bagging, different base algorithms | Planned; clarify base-learner wording first |
+| 8 | Basic vs boosting vs bagging vs transfer | Partial: basic models only; transfer undefined |
+| 9 | CNN/deep network with justified tuning | Planned; not started |
+| 10 | Complexity, time, performance in context | Partial: basics measured; ensembles/deep model and final comparison pending |
 
-The PDF says 200 points, pass at 130. It specifies no submission format, deadline,
-minimum dataset size, library restriction or requirement to implement from
-scratch. Check general course rules separately. Justifications carry marks.
+The one-page PDF says 200 points, pass at 130. No deadline, submission format,
+minimum sample size or library restriction is stated there; check course-wide
+rules. Justifications carry marks. The final report is not yet written.
 
-## Decisions before seeing scores
+## Data and A1 preservation
 
-1. Keep A1 test IDs **2, 6, 8, 18, 25, 28, 37** locked. No model will fit, predict,
-   tune or calculate scores on them in this first experiment. Dataset quality
-   counts may include them. Use three participant-grouped folds on development
-   people only, seed 42.
-2. Use fixed two-second half-open windows anchored at raw stimulus messages.
-   Never cross a person, segment or screen change. Drop incomplete final windows.
-   Measure timestamp-based sample support, rather than joining rows after gaps.
-   Require at least 90% supported time and at most 150 ms continuously uncovered
-   inside a window. These are quality rules chosen before model results.
-3. Use cache signals but recover original display boundaries from raw recordings.
-   A cache alone cannot tell us the original screen onset after leading rows were
-   deleted. Do not rebuild or change the A1 cache.
-4. Do not apply A1's per-person pupil clipping in A3's first run. It would use the
-   whole validation participant's recording. The cache is not pupil-clipped;
-   inspect the retained range and keep values. A small tree does not require
-   scaling. Alternative: learn common clipping bounds on fold-training data only.
-5. Reuse cached blink/gap features with their exact A1 meaning: rolling **1,250
-   sample rows**, nominally five seconds, grouped by stimulus before deletion.
-   This is not an exact five-second clock window, nor a fresh blink count in our
-   two-second window. Do not reconstruct missing blink events from cache rows.
-6. Compare the same small tree on an explicit full feature list and its subset
-   without absolute position. Exclude raw coordinates, eye position, gaze vectors,
-   validity/confidence flags, language and all identity/label/time metadata.
-   Relative velocity can still carry spatial structure. Group B is not spatially
-   information-free.
-7. Use a depth-four tree, minimum leaf size ten and balanced class weights, fixed
-   before scores. Compare to the most-frequent-class DummyClassifier. No tuning,
-   PCA, ensembles or neural networks in this first run.
-8. Do not apply PCA in this first experiment: the selected 13 summaries are few,
-   interpretable and a small tree does not require scaling. PCA would mix position
-   and other signals, complicating our intended position comparison. The explicit
-   feature selection addresses point 4; later models may justify other choices.
+- A1 reference: `8b3337370f02242ba2132a9e4b84ee2bc4669426`.
+- 33 raw recordings: 32 TSV + Excel participant 211; nominal 250 Hz. One SMP row
+  is one time point, normally about 4 ms apart. Raw data are tracked in Git.
+- Preserve A1 code/data/cache/figures/reports at root. Only the shared README and
+  ignore rules changed. Moved the A3 PDF to `assignment3/assignment.pdf` unchanged.
+- No AGENTS.md found. The initial staged changes matched preceding A3 work, with
+  no unrelated edits. Cross-imported source, evidence and docs were committed
+  together rather than creating incomplete intermediate snapshots.
+- All 60 retained code displays agree with rerun A1 preprocessing in timestamps,
+  six used signals and quality labels. 54 protected A1 file hashes passed.
+- A1 keeps >=20 usable sample-equivalent seconds per person/task. It removes both
+  tasks for 22/39 and rectangle for 1/18. Cache retains 856,785 code rows from 31
+  people; velocity >1,000 deg/s removes 138, leaving **856,647** (510,927 vehicle,
+  345,720 rectangle). This is 3,426.588 nominal sample-seconds, not continuous time.
+- There are 572 retained timestamp intervals >150 ms, maximum 25.678280 s. Never
+  compress deleted holes into a continuous 250 Hz series.
+- Historical results.md has obsolete 34/29-feature and eight-component PCA
+  counts. Current A1 code/report use 32/27 and seven components. Do not rewrite
+  that old log; PDF/HTML exports also predate the latest report.md changes.
 
-## Implemented/run record
+## Window quality: V1 preserved, V2 chosen before new scores
 
-- Planning and preservation checks completed. Data builder, experiment and
-  targeted checks implemented in three scripts and run successfully. The dated
-  run sections below contain the actual results; this list records design context.
-- Pre-model cache inspection: 856,785 code samples, 31 people and 60 displays;
-  572 retained timestamp intervals exceed 150 ms, maximum 25.678280 s. Treating
-  these rows as a continuous 250 Hz signal would be incorrect.
-- Retained, unclipped code pupil ranges inspected before scoring: left 1.87–5.33
-  mm; right 1.70–4.76 mm. These do not indicate an obvious need for whole-person
-  statistical clipping. This is not proof that every pupil sample is artefact-free.
-- The builder also reruns A1 preprocess one raw file at a time, without writing
-  A1 output, and compares code timestamps, used signals and quality labels with
-  the cache. This checks consistency and recovers exclusions and screen onsets.
-- Group A has 13 features; B has 11. A adds only mean screen x/y. Both retain
-  x/y population standard deviations, which are translation-invariant spread,
-  plus pupil means/SDs, speed median/p90, cached blink/gap means and interpolation
-  fraction. B still contains relative spatial structure.
-- Speed summaries use in-window consecutive samples only, excluding intervals
-  over 20 ms and speeds over 1,000 deg/s. This avoids treating motion across a
-  deleted hole as a short observed movement. A1's physical velocity filter is
-  applied first. Pupil features remain unclipped; no fitted preprocessing occurs.
-- Three folds are generated by seeded KFold on sorted development participant
-  IDs, then expanded to all their windows. This gives equal numbers of people per
-  fold rather than optimising fold scores. Models use identical folds.
+Windows are non-overlapping, half-open two-second intervals anchored at raw screen
+messages. They never cross people, segments or screen changes; partial final
+windows are dropped. V1 requires >=90% support and <=150 ms continuously uncovered.
 
-## Data build — run, 31 October 2026
+Time support assigns each retained sample at most 4 ms, clipped at the next sample
+and window edge. `ok` is direct support, `interpolated` is filled support; the
+remainder is uncovered, including small timing jitter. These are conservative
+operational durations, not proof that every tracker-valid sample is correct.
 
-Command: `.venv/bin/python -B assignment3/src/data.py` from the repository root.
-Configuration: `config.json`. Output: `cache/windows.parquet` (ignored by Git),
-`results/data/summary.json`, `recordings.csv`, `displays.csv`, `window_audit.csv`
-and `provenance.json`. No model was evaluated during construction.
+Development V1 audit, before new model scores:
 
-- All 33 raw recordings were read: 1,710,878 SMP measurements and 377 messages.
-- There are 66 raw code displays. A1's 20-second rule retains 60, from 31 people.
-  All 60 were checked against rerun A1 preprocessing: timestamps, six used signal
-  columns and quality labels agree. Root cache and other A1 outputs were not rebuilt.
-- Code-only cache: 856,785 rows. A1 physical velocity rule removes 138 code rows,
-  leaving 856,647: 510,927 vehicle / 345,720 rectangle. At nominal 250 Hz this is
-  3,426.588 sample-equivalent seconds, not a continuous recording duration.
-- Of 1,819 full two-second candidate windows, 1,366 pass and 453 fail. Reasons:
-  277 low coverage plus a long uncovered interval; 175 long interval alone;
-  one low coverage alone. See every candidate, including rejected ones, in the
-  window audit. Partial windows at display ends are not candidates.
-- Final table: **30 people, 59 displays, 1,366 windows** (790 vehicle / 576
-  rectangle), spanning 2,732 seconds of windows. Conservative timestamp support
-  is **2,724.721542 s**, including interpolated samples, not only direct observations.
-- Development: **23 people, 992 windows**, 562 vehicle / 430 rectangle;
-  1,978.406376 supported seconds inside 1,984 window seconds.
-- Locked test: **7 people, 374 windows**, 228 vehicle / 146 rectangle;
-  746.315166 supported seconds inside 748 window seconds. These are dataset
-  counts only; no test predictions or scores have been computed.
-- Participant 1's surviving vehicle display produces no accepted windows under
-  the predeclared rule. This reduces development from 24 to 23 people. We did not
-  relax the quality rule or use scores to decide exclusion. Participant 18's
-  rectangle display was already removed by A1, so test data contain 13 displays.
+- 992 accepted windows: interpolation-time bins 0%, >0–5%, >5–10%, >10–20%, >20%
+  contain **582, 152, 180, 47, 31** windows respectively.
+- Interpolation p50/p90/p95/p99/max: **0/7.60/13.39/46.45/75.87%**.
+- Total time: **1,911.754818 s direct, 66.651558 s interpolated, 5.593624 s uncovered**.
+- Continuity alone admits interpolation-dominated summaries. V2 adds **>=80%
+  direct support**, or 1.6 s in each window. This pragmatic threshold is not a
+  validated physiological standard. Policy and expected loss were recorded in
+  quality_policy.json and committed before the model comparison.
+- Alternatives: retain V1 with quality stratification; require 90% direct support
+  (more selection); discard all interpolation (strong selection against blinking).
+  V2 keeps modest interpolation while excluding dominated windows. No score-based
+  exclusions, threshold search, restored pid 1 or changed research question.
 
-Feature definitions: sample-row means and population standard deviations
-(`ddof=0`) within each accepted window. Velocity is displacement divided by real
-elapsed time and A1's pixels-per-degree constant; summarised by median and p90.
-Only consecutive pairs within that window and at most 20 ms apart contribute.
-The cached A1 blink-rate and gap-fraction signals are averaged, not reinterpreted
-as counts. Interpolation fraction is interpolated rows divided by retained rows
-in the window. Uneven sampling is bounded by quality checks, but these summaries
-are row-weighted, not time-weighted. Full explicit lists are in data.py and the
-data summary; only these names may be supplied to models.
-
-## Targeted checks — run, before model validation
-
-Command: `.venv/bin/python -B assignment3/src/checks.py`.
-Output: `results/data/checks.json`, **PASS**.
-Checks cover all 1,819 candidates, 1,366 accepted windows, explicit feature
-allowlists, person separation, original screen boundaries, non-overlap, coverage,
-and synthetic empty windows, deleted 200 ms holes and half-open boundaries.
-54 protected A1 files, including raw data, code, figures, reports and cache,
-match their recorded SHA-256 hashes.
-
-Further data diagnostics, not score-based exclusions:
-
-- A1-excluded displays have usable sample-equivalent seconds: pid 1 rectangle
-  13.572; pid 18 rectangle 5.028; pid 22 rectangle 2.352 and vehicle 1.148;
-  pid 39 vehicle 15.488 and rectangle 6.652. All are below 20 s.
-- Retained displays span 3,704.004562 clock seconds. Full candidates span 3,638
-  seconds; incomplete trailing remainders sum to 66.004562 s.
-- Accepted coverage: minimum 90.19005%, median 99.87475%; largest continuous
-  uncovered interval 142.359 ms.
-- Accepted windows average 3.5066% interpolated rows, but one has **76%**.
-  Coverage includes A1-interpolated support, so high coverage alone does not mean
-  mostly direct measurements. This limitation remains visible in the features
-  and audit, without adding an unplanned exclusion rule.
-
-## First validation — run, 31 October 2026
-
-Command: `.venv/bin/python -B assignment3/src/experiment.py`.
-Output directory: `results/first_validation/`. See `config.json`, `folds.json`,
-`fold_metrics.csv`, `participant_metrics.csv`, `predictions.csv`, `summary.json`
-and `environment.json`. The exact installed package versions are also saved in
-`requirements.txt` in that directory. Model source and window-table hashes are
-recorded. No fitted model is saved, and no locked test person is scored.
-
-The seed-42 participant split gives validation folds of 8, 8 and 7 people (315,
-359 and 318 windows). All their windows stay together. Every development person
-appears in validation exactly once, and every one has both classes after window
-selection. All three model variants use identical folds. There are no learned
-transforms: no scaler, imputer, PCA or pupil clipping. Each classifier fits only
-the current fold's training windows.
-
-Results below are **actual development validation**, not final-test performance.
-Mean and sample SD are across the three folds; they are not confidence intervals.
-
-| Model | Balanced accuracy, mean ± SD | Macro-F1, mean ± SD | Equal-person balanced accuracy | Equal-person macro-F1 |
+| Version | Development people/windows | Development vehicle/rectangle | Locked people/windows | Locked vehicle/rectangle |
 |---|---|---|---|---|
-| Most-frequent dummy | 0.5000 ± 0.0000 | 0.3621 ± 0.0182 | 0.5000 | 0.3557 |
-| Tree A, with mean position | 0.6114 ± 0.0233 | 0.5930 ± 0.0373 | 0.6191 | 0.5789 |
-| Tree B, without absolute position | 0.5072 ± 0.0159 | 0.4960 ± 0.0240 | 0.5207 | 0.4700 |
+| V1 | 23 / 992 | 562 / 430 | 7 / 374 | 228 / 146 |
+| V2 | 23 / 961 | 546 / 415 | 7 / 369 | 224 / 145 |
 
-Fold balanced accuracies: A **0.6161, 0.5860, 0.6319**; B **0.5051, 0.5241,
-0.4924**. B is below the dummy on balanced accuracy in the last fold. We keep this
-negative result. Macro-F1 can improve over a majority dummy even while balanced
-accuracy remains near 0.5; the two metrics answer different questions.
+V2 removes 31 development and five test windows; no additional person or display
+is lost. V2 totals 1,330 windows from 30 people. Pid 1 already had zero V1 windows.
+Test IDs stay **2, 6, 8, 18, 25, 28, 37**. Pid 18 has only vehicle; future test
+reporting must not present that person's score as two-class discrimination.
+These are test quality counts only, never test model results.
 
-Per-person CSV gives both scores and class counts for all 23 people and each
-model. Equal-person means weight each person once, irrespective of their number
-of windows. Pooled out-of-fold scores in summary.json instead weight windows.
-The code defines per-person macro-F1 over observed true classes and records
-class support; a future one-class person would need cautious interpretation.
-All people in this actual development run have both classes.
+## Features and preprocessing decisions
 
-| Model | Total fit time, 3 folds | Total predict time, 3 folds | Tree depth / node counts |
+A has 13 features, B has 11. A adds only mean screen x/y to B. Both contain x/y
+population SD, left/right pupil mean and SD, speed median/p90, mean cached A1
+blink rate and gap fraction, and interpolated-row fraction. Full allowlists are
+in src/data.py. ID, label, stimulus, absolute time, segment, file, language, raw
+eye coordinates, eye position and gaze vectors are never supplied as features.
+B retains relative spatial structure; it is not spatially information-free.
+
+Means/SDs are row-weighted, SD uses ddof=0. Speed uses within-window consecutive
+pairs, actual dt, A1 pixels-per-degree geometry, dt <=20 ms and <=1,000 deg/s.
+Cached blink/gap signals are A1's trailing **1,250 sample rows**, nominally five
+seconds; their window means are not new blink counts or exact clock windows.
+
+Pupils are not clipped using whole-person statistics. Inspected code ranges are
+left 1.87–5.33 mm, right 1.70–4.76 mm; extremes are not proven artefact-free. An
+alternative is fold-training-only common clipping bounds. Trees need no scaling;
+kNN/SVM use StandardScaler inside each training pipeline. No PCA: the selected
+13/11 summaries are small and interpretable, and PCA would mix the position
+comparison. Original A1 behaviour is unchanged.
+
+## Fixed model plan and evaluation
+
+comparison_plan.json, committed in `2c2edf8` before new scores, specifies:
+
+- Primary: mean two-class balanced accuracy, **equal weight per person**.
+  Secondary: equal-person macro-F1, pooled window scores and class confusion.
+- Reuse the original three outer person folds for all eight variants. V2 outer
+  validation sets have 315, 342 and 304 windows (8, 8 and 7 people).
+- Three inner person folds inside each outer training set select parameters.
+  Never select on outer validation. First grid setting wins exact ties.
+- Six settings per family/feature group: tree depth 2/4/6 x leaf size 5/10;
+  kNN k=5/15/31 x uniform/distance weights; RBF-SVM C=.1/1/10 x gamma=.01/.1.
+  This is 108 candidate searches / 324 inner fits, without adaptive expansion.
+- Depth/leaf size limit tree complexity; k and weights compare local/smoother
+  neighbours; C/gamma compare regularisation/kernel locality after scaling.
+  Same budget is fairer than a tuned model against an arbitrary default, but
+  does not optimise all families equally thoroughly.
+- Tree/SVM class weights are balanced; kNN uses Euclidean distance. Training is
+  window-weighted; equal-person evaluation does not equalise training influence.
+- Untuned controls: majority dummy and position-only depth-one tree (min leaf 10).
+  Controls are not equally searched competitors. A/B may choose different
+  hyperparameters, so their difference is a pipeline comparison, not causation.
+- Per-person CSV includes both class counts and TN/FP/FN/TP. Missing-class people
+  retain predictions but have null two-class metrics and separate observed-class
+  recall. All 23 current development people have both classes.
+- No full-development final fit or final-test evaluation yet. The selected outer
+  refits estimate the bounded selection procedure, not a final deployed model.
+
+## Executed commands and evidence
+
+Run from repo root with existing .venv; no new packages were installed.
+
+```bash
+.venv/bin/python -B assignment3/src/checks.py
+.venv/bin/python -B assignment3/src/quality.py
+.venv/bin/python -B assignment3/src/quality.py --apply
+.venv/bin/python -B assignment3/src/compare.py
+```
+
+- V1: results/data/ and results/first_validation/ remain unchanged. The old data
+  builder and experiment.py reproduce V1; do not overwrite a historical run when
+  changing analysis choices. Use a new version/directory for future revisions.
+- Quality: results/quality/ has per-window time parts, full distributions,
+  per-person/class selection counts and policy/hash evidence. Windows and derived
+  feature tables stay ignored in cache/; no weights or raw samples are committed.
+- Comparison: results/model_comparison_v2/ contains summaries, fold/person metrics,
+  OOF predictions, all search scores, nested fold IDs, raw timing batches, plan,
+  environment and checks. Environment records all package versions and hashes.
+
+## Actual V2 results: development only
+
+BA and F1 below average people, not folds or windows. Fold ranges are descriptive,
+not confidence intervals; all variants use the same retained windows/folds.
+
+| Model | Person BA | Person macro-F1 | Outer-fold BA range |
 |---|---|---|---|
-| Dummy | 0.06224 s | 0.000934 s | Not a tree |
-| Tree A | 0.03247 s | 0.002099 s | Depth 4; 15, 19, 17 nodes |
-| Tree B | 0.02783 s | 0.002048 s | Depth 4; 23, 19, 19 nodes |
+| Dummy | .5000 | .3520 | .500–.500 |
+| Tree A | .6164 | .5837 | .573–.645 |
+| Tree B | .5268 | .4704 | .507–.556 |
+| kNN A | .5840 | .5484 | .575–.591 |
+| kNN B | .4979 | .4688 | .459–.559 |
+| RBF-SVM A | .5819 | .5266 | .567–.601 |
+| RBF-SVM B | .5337 | .4959 | .458–.587 |
+| Position-only stump | .5814 | .4534 | .565–.605 |
 
-Timing uses `perf_counter` wall time around a single fit and a single predict,
-with input arrays prepared first. It excludes raw loading, window construction,
-I/O and metric calculations. No repeats or warm-up were used; the first dummy
-fit took 0.06096 s while its later fits were under 0.001 s. Initial overhead and
-very small prediction calls make these timings noisy. Do not conclude that the
-dummy is computationally more complex than the tree from these numbers.
+Tree A is highest in this bounded comparison, not proven universally superior.
+Removing mean position reduces each family's mean here, but tuning choices also
+change. B results are weak: kNN is below dummy on average, and SVM B has a .458
+fold. Do not hide these negatives or expand searches to chase a desired result.
 
-**Interpretation:** mean screen position helps this particular small tree on this
-development sample: removing only mean x/y reduces fold-average balanced accuracy
-by about 0.104. A's performance is modest, not reliable identification of every
-window or every person. B is near the dummy on balanced accuracy. This is initial
-evidence about these two known tasks and this feature/model choice, not proof
-that removing position makes shared data private. Relative spread, velocity and
-other channels can still carry task information; other models may use it better.
+The stump uses mean y in all folds, with training thresholds about 233–252 px.
+Its BA is near kNN/SVM A, but its errors differ: pooled rectangle recall .959 and
+vehicle recall .167. Tree A's pooled recalls are .492 and .725. A similar BA does
+not mean equally useful class behaviour. Pooled counts are secondary/window-
+weighted; see participant_metrics.csv for actual per-person class support.
+Tree A person BA ranges .414–.857. Three folds and 23 people give limited certainty.
+These development people also appeared in V1 exploration. Nested selection limits
+search optimism but does not turn them into fresh, untouched test people.
+No result demonstrates comprehension, arbitrary-code generalisation, causation
+or privacy protection after removing position. V1/V2 also differ in quality,
+nesting and tuning; do not attribute score differences to quality alone.
 
-An independent check recomputed fold metrics from the saved 2x2 confusion matrices,
-checked all 2,976 prediction rows and the 69 participant-metric rows, verified no
-test predictions and one validation fold per development person, and compared
-pre-edit A1 hashes. Result: `results/first_validation/checks.json`, **PASS**.
-The moved A3 PDF also matches its original Git blob byte for byte.
+## Time, complexity and verification
 
-## Open questions and limits
+Timing separates inner-search wall time from repeated selected-outer-refit fit
+and prediction. Warm up, then five batches each with >=20 ms timed work or the
+1,000-call cap. Fresh-model cloning, I/O and metrics are excluded; scaler work is
+included. Raw batch counts/times and per-fold quartiles are saved. These are warm
+validation-batch costs, not end-to-end real-time deployment latency.
 
-- What does **transfer** in point 8 require? It appears without an implementation
-  instruction. It is neither assumed optional nor claimed complete.
-- Does point 7 require distinct base learner families for boosting and bagging?
-  Our working reading is yes; confirm before selecting them.
-- Can the point-9 network count as one of point 5's three algorithms? Unclear.
-- A1 linear interpolation uses later samples. Offline results cannot establish
-  real-time prediction performance.
-- Two fixed tasks confound task identity with layout. Only one person saw Scala.
-  Correlated windows are not independent participants.
-- The A1 cache's cleaning provenance must be preserved and audited; this first
-  stage is not a full independent revalidation of every A1 cleaning rule.
-- The quality rule removes participant 1 completely and some windows from other
-  people. Scores describe the retained data, not every captured sample.
-- Interpolated support can dominate individual accepted windows; investigate this
-  before treating coverage as a guarantee of measurement quality.
-- Three development folds and 23 people do not establish a population-wide
-  privacy risk estimate. The final test is still untouched.
-- This supervised experiment assumes labelled reference recordings of the known
-  tasks. Window construction also uses producer-side screen-change boundaries.
-  It does not demonstrate identification from an arbitrary unsegmented stream
-  with no labelled reference data. Task names/images are not model inputs.
+| Model A | Total inner search, 3 outer folds | Median outer fit | Median prediction batch |
+|---|---|---|---|
+| Tree | .808 s | 7.94 ms | .164 ms |
+| kNN | .823 s | 4.23 ms | 10.50 ms |
+| RBF-SVM | 1.327 s | 24.92 ms | 9.23 ms |
 
-## Next work and handover — planned
+Prediction batches contain 304–342 windows; both groups/controls have full timing
+rows. Tree A depth is 4–6 with 17–37 nodes; kNN retains 619–657 training windows;
+SVM A uses 409–627 support vectors. More expensive prediction is consistent with
+neighbour/kernel evaluation, but this small warm benchmark is not a scaling law.
 
-Eivind: start with this log, README.md and the two summary.json files. Inspect
-participant_metrics.csv and the window audit, especially participant 1 and the
-window with 76% interpolation. Then review the fixed rules with Trym. The initial
-build/experiment/checks are complete; do not repeat the A1 pipeline to start A3.
+Checks PASS: A1/V1 hashes, time-part conservation and synthetic holes, V2 eligibility,
+nested person separation, training-only scaler means/sample counts, input
+allowlists, one-class metric suppression and unique OOF rows. Independent sklearn
+recomputation verifies all 184 participant metric/confusion rows, 7,688 predictions,
+24 outer results and the 108 inner-only parameter selections. All 15 old result
+files are unchanged; no locked test predictions exist.
 
-Mandatory next steps, in order:
+The first timing audit incorrectly required every batch to reach 20 ms. Six
+batches hit the declared 1,000-call cap sooner. The audit was corrected to the
+predeclared budget-or-cap rule; raw results were retained, no models rerun.
+See results/model_comparison_v2/verification.json. Source and plan hashes match.
 
-1. Confirm the transfer and base-algorithm wording with the course staff. Decide
-   whether the data quality policy needs a reasoned revision before more models.
-2. Add one bounded kNN experiment on the same development folds and feature groups,
-   with scaling fitted within training folds only. Then add kernel SVM to reach
-   three allowed algorithms. Keep searches small and document choices.
-3. Implement the required ensembles after agreeing their base learners; implement
-   and tune a small deep model; compare complexity, time and performance fairly.
-4. Freeze model choices, evaluate the locked test once, and complete the report.
+## Open questions and next work
 
-Optional improvements after mandatory work is under control: a predeclared
-interpolation/coverage sensitivity analysis, better clock-based blink features,
-additional participants/tasks and more stable timing measurements.
+1. Ask course staff what **transfer** in point 8 requires and whether point 7
+   requires different base-learner families. Neither is assumed resolved/complete.
+   Also clarify whether the deep model can count among point 5's three algorithms.
+2. Review these errors and limitations with Eivind. Then predeclare a bounded
+   boosting/bagging comparison with appropriate distinct base learners. Do not
+   infer a best learner from tiny validation differences alone.
+3. Later implement/tune a small DNN or CNN, with grouped evaluation and justified
+   hyperparameters. Do not start this larger part in the current session.
+4. Freeze analysis/model choices, evaluate the same locked test once, compare all
+   required methods and write the final report.
 
-Eivind may reconsider feature definitions, quality thresholds, pupil treatment
-and eventual model choices. Record the reason and new configuration before
-looking at new validation scores. Never choose exclusions or the question for
-a desired score, and never use the locked test to guide these choices.
+Eivind may reconsider operational quality thresholds, future feature/ensemble
+choices and search budgets with reasons recorded before new scores. A future
+quality sensitivity study must preserve old versions and use development data
+only. More participants/tasks and exact clock-based blink features are optional
+improvements, not excuses to change the agreed question. Pid 1 remains excluded
+by quality, Scala has only one participant, and quality selection/correlated
+windows restrict the population to which conclusions apply.

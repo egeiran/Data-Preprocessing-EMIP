@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "development_windows": 961,
+  "people": 23,
+  "predictions": 7688,
+  "search_candidates": 108,
+  "checks": [
+    "V1 and A1 provenance",
+    "V2 policy and hash",
+    "disjoint nested person folds",
+    "no test predictions",
+    "explicit input allowlists",
+    "training-only scaler statistics",
+    "one-class two-class-metric suppression",
+    "unique OOF predictions"
+  ]
+}

@@ -54,8 +54,21 @@ windows. No test model results are used to set the policy.
 ```bash
 .venv/bin/python -B assignment3/src/quality.py
 .venv/bin/python -B assignment3/src/quality.py --apply
+.venv/bin/python -B assignment3/src/compare.py
 ```
 
 Quality evidence is in `results/quality/`; V2 features are in ignored
 `cache/windows_v2.parquet`. The first command audits development quality; the
 second applies the declared policy and records all selection counts.
+
+The comparison uses three nested participant folds, six settings each for tree,
+kNN and RBF-SVM on both feature groups, plus untuned dummy/position controls.
+Primary scoring gives each person equal weight. Scaling is fitted within training
+pipelines only. Results, class/person errors, search scores, repeated timings and
+environment are in `results/model_comparison_v2/`; start with `summary.csv`.
+No final-test predictions or full-development final model are produced.
+
+Current person-average balanced accuracy: tree A/B .616/.527, kNN A/B .584/.498,
+SVM A/B .582/.534, dummy .500 and position-only stump .581. Read WORKLOG before
+interpreting these small development results. Reruns overwrite the same version's
+output directory; create a new version before changing analysis choices.

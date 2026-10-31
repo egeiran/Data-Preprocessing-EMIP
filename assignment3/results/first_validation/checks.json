@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "predictions": 2976,
+  "development_people": 23,
+  "models": 3,
+  "fold_metric_rows": 9,
+  "participant_metric_rows": 69,
+  "all_development_people_have_both_classes": true,
+  "validation_people_appear_in_exactly_one_fold": true,
+  "no_locked_test_predictions": true,
+  "independent_confusion_matrix_metric_check": "PASS",
+  "pre_edit_a1_hashes_unchanged": 53,
+  "moved_pdf_matches_original_git_blob": true
+}

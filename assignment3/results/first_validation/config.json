@@ -1,0 +1,71 @@
+{
+  "a1_reference_commit": "8b3337370f02242ba2132a9e4b84ee2bc4669426",
+  "a1_cache": "dataset.parquet",
+  "a1_test_participants": [
+    "2",
+    "6",
+    "8",
+    "18",
+    "25",
+    "28",
+    "37"
+  ],
+  "seed": 42,
+  "window_seconds": 2.0,
+  "min_coverage": 0.9,
+  "max_uncovered_ms": 150.0,
+  "max_velocity_interval_ms": 20.0,
+  "pupil_clipping": "none",
+  "validation_folds": 3,
+  "tree": {
+    "max_depth": 4,
+    "min_samples_leaf": 10,
+    "class_weight": "balanced"
+  },
+  "feature_groups": {
+    "A_with_position": [
+      "gaze_x_mean_px",
+      "gaze_y_mean_px",
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ],
+    "B_without_absolute_position": [
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ]
+  },
+  "fold_method": "seeded KFold on sorted participant IDs, then all their windows",
+  "models": [
+    [
+      "dummy_most_frequent",
+      "B_without_absolute_position"
+    ],
+    [
+      "tree_A_with_position",
+      "A_with_position"
+    ],
+    [
+      "tree_B_without_absolute_position",
+      "B_without_absolute_position"
+    ]
+  ],
+  "learned_transforms": "none"
+}

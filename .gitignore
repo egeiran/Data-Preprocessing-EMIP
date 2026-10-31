@@ -11,3 +11,14 @@ wheels/
 
 # Cache for det ferdige datasettet (100 MB, bygges av build_dataset())
 dataset.parquet
+
+# Assignment 3: generated feature tables, environments and fitted models
+assignment3/cache/
+assignment3/.venv/
+assignment3/models/
+assignment3/**/*.parquet
+assignment3/**/*.joblib
+assignment3/**/*.pkl
+assignment3/**/*.pt
+assignment3/**/*.pth
+assignment3/**/*.keras

@@ -1,4 +1,12 @@
-# IT3212 Assignment 1: Data Preprocessing
+# IT3212: EMIP assignments
+
+- **Assignment 1:** original preprocessing code and results remain in this directory.
+  Start with [the report](report.md) and the instructions below.
+- **Assignment 3:** [setup and commands](assignment3/README.md),
+  [shared worklog](assignment3/WORKLOG.md), [official task](assignment3/assignment.pdf).
+  A3 has separate code, caches and results. It does not overwrite A1 outputs.
+
+## Assignment 1: Data Preprocessing
 
 Preprocessing of the EMIP eye-tracking dataset. The report is `report.md` (submitted as PDF);
 this repository holds the code that produced every number and figure in it.
@@ -10,7 +18,8 @@ uv venv && uv pip install -r requirements.txt
 ```
 
 Put the raw recordings in `emip_dataset/rawdata/` (`<id>_rawdata.tsv`, plus `211_rawdata.xlsx`).
-The data is not in the repository.
+The current repository includes 32 TSV recordings and `211_rawdata.xlsx` in that
+directory, tracked in Git. The generated `dataset.parquet` cache is ignored by Git.
 
 ## Run order
 

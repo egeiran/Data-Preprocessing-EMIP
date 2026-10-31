@@ -1,0 +1,108 @@
+{
+  "source": {
+    "rows_before_velocity_filter": 856785,
+    "rows_removed_by_velocity_filter": 138,
+    "participants": 31,
+    "retained_timestamp_gap_ms_quantiles": {
+      "0.5": 4.0,
+      "0.99": 4.011,
+      "0.999": 6.0,
+      "1": 25678.28
+    },
+    "retained_intervals_over_150_ms": 572,
+    "rows_after_velocity_filter": 856647,
+    "usable_sample_equivalent_seconds": 3426.588,
+    "class_rows_after_velocity_filter": {
+      "vehicle": 510927,
+      "rectangle": 345720
+    },
+    "pupil_range_mm_without_clipping": {
+      "L Mapped Diameter [mm]": {
+        "min": 1.87,
+        "max": 5.33
+      },
+      "R Mapped Diameter [mm]": {
+        "min": 1.7,
+        "max": 4.76
+      }
+    }
+  },
+  "raw_recordings": 33,
+  "raw_samples": 1710878,
+  "raw_messages": 377,
+  "raw_code_displays": 66,
+  "cache_verified_displays": 60,
+  "candidate_windows": 1819,
+  "rejected_windows": 453,
+  "rejection_reasons": {
+    "low_coverage+long_uncovered_interval": 277,
+    "long_uncovered_interval": 175,
+    "low_coverage": 1
+  },
+  "feature_groups": {
+    "A_with_position": [
+      "gaze_x_mean_px",
+      "gaze_y_mean_px",
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ],
+    "B_without_absolute_position": [
+      "gaze_x_std_px",
+      "gaze_y_std_px",
+      "pupil_left_mean_mm",
+      "pupil_left_std_mm",
+      "pupil_right_mean_mm",
+      "pupil_right_std_mm",
+      "velocity_median_deg_s",
+      "velocity_p90_deg_s",
+      "a1_blink_rate_mean",
+      "a1_gap_fraction_mean",
+      "interpolated_fraction"
+    ]
+  },
+  "all": {
+    "windows": 1366,
+    "participants": 30,
+    "displays": 59,
+    "classes": {
+      "1": 790,
+      "0": 576
+    },
+    "nominal_window_seconds": 2732.0,
+    "supported_seconds": 2724.7215419999998
+  },
+  "development": {
+    "windows": 992,
+    "participants": 23,
+    "displays": 46,
+    "classes": {
+      "1": 562,
+      "0": 430
+    },
+    "nominal_window_seconds": 1984.0,
+    "supported_seconds": 1978.406376
+  },
+  "locked_test": {
+    "windows": 374,
+    "participants": 7,
+    "displays": 13,
+    "classes": {
+      "1": 228,
+      "0": 146
+    },
+    "nominal_window_seconds": 748.0,
+    "supported_seconds": 746.315166
+  },
+  "participants_without_accepted_windows": [
+    "1"
+  ]
+}

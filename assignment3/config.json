@@ -1,0 +1,17 @@
+{
+  "a1_reference_commit": "8b3337370f02242ba2132a9e4b84ee2bc4669426",
+  "a1_cache": "dataset.parquet",
+  "a1_test_participants": ["2", "6", "8", "18", "25", "28", "37"],
+  "seed": 42,
+  "window_seconds": 2.0,
+  "min_coverage": 0.90,
+  "max_uncovered_ms": 150.0,
+  "max_velocity_interval_ms": 20.0,
+  "pupil_clipping": "none",
+  "validation_folds": 3,
+  "tree": {
+    "max_depth": 4,
+    "min_samples_leaf": 10,
+    "class_weight": "balanced"
+  }
+}

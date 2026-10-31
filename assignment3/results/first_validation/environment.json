@@ -1,0 +1,32 @@
+{
+  "created_utc": "2026-10-31T13:41:13.093255+00:00",
+  "command": ".venv/bin/python -B assignment3/src/experiment.py",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "cpu": "x86_64",
+  "logical_cpus": 12,
+  "packages": {
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.9.1",
+    "pyarrow": "25.0.1",
+    "openpyxl": "3.1.5"
+  },
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "git_head": "8b3337370f02242ba2132a9e4b84ee2bc4669426",
+  "git_status": " M .gitignore\n D \"IT3212-2026-Assignment 3 (1).pdf\"\n M README.md\n?? assignment3/\n",
+  "windows_sha256": "7b8b928ec80510a4986a20a393614da28603998fd0be8d8d7b139f0205341595",
+  "data_provenance_sha256": "f1ff94b4ae187a0be670f7da3ca883fdfbaccecf9744b3a4e107ebb3115a25f6",
+  "source_sha256": {
+    "assignment3/src/checks.py": "4b14c89e22116e97eceeec206d58b25c5e63bd829e8e79e23b64c11e2cff6123",
+    "assignment3/src/data.py": "c7b7d23f32ce6c0b6f847db1c4561758094c546e46be9268a5f592f87f8cf56d",
+    "assignment3/src/experiment.py": "98b6979036e637e8c0c117180313f969e399d8c5c1b4651b164045d6dc400fe3"
+  },
+  "timing": "perf_counter wall time around one fit and one predict per fold; arrays prepared first; no I/O, feature building or metric calculations included; small timings are noisy",
+  "per_person_metrics": "average over observed true classes; report class support; one-class people do not test two-class discrimination; equal-participant summary weights every development person once",
+  "test_evaluation": "not performed"
+}

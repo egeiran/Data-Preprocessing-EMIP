@@ -87,6 +87,20 @@ rules. Justifications carry marks. The final report is not yet written.
   counts. Current A1 code/report use 32/27 and seven components. Do not rewrite
   that old log; PDF/HTML exports also predate the latest report.md changes.
 
+### Cross-machine reproduction (Eivind, 2026-11-02)
+
+- macOS arm64, Python 3.14.7, same pinned packages except Linux-only
+  `nvidia-nccl-cu13` and `pip`. Rebuilt `dataset.parquet` with `cleaning.py`, then
+  ran data.py, checks.py, quality.py (with and without `--apply`) and compare.py.
+- All committed CSV evidence is byte-identical: window audit, displays, recordings,
+  time parts, class quality. V2 predictions, participant metrics, search scores and
+  inner folds are byte-identical; all summary metrics match exactly.
+- Only parquet byte hashes differ (A1 cache `806de8…` vs `2c9a56…`; windows and V2
+  tables likewise). Parquet bytes are platform-specific, so byte checks in
+  checks.py and compare.py pass only on the machine that built the cache. Trym's
+  provenance files were restored unchanged. V3 code verifies V2 by keys against
+  committed CSV evidence and records portable content fingerprints instead.
+
 ## Window quality: V1 preserved, V2 chosen before new scores
 
 Windows are non-overlapping, half-open two-second intervals anchored at raw screen

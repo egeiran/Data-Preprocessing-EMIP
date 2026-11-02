@@ -13,26 +13,44 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
 - No final-test predictions, final full-development model, ensembles or deep
   network have been run. No push. Personal Git identity is Trym Johnsen's existing
   configuration; no Git identity settings were changed.
+- 2026-11-02 (Eivind): problem reframed around the A/B position comparison and
+  gaze-data privacy. Text only; see Problem and scope.
 - Next: review class errors and these limits, resolve the course ambiguities,
-  then plan boosting/bagging. Do not expand searches just to improve scores.
+  then plan boosting/bagging and the deep model on both feature groups. Do not
+  expand searches just to improve scores.
 
 ## Problem and scope
 
-Can shared eye-tracking data identify which of two known code tasks, vehicle or
-rectangle, a new participant views, when task names and screenshots are withheld
-from model inputs? Use code screens only. This is a closed-set, offline study;
-not comprehension measurement, source reconstruction, arbitrary-program
-recognition, evidence of causation, or a privacy guarantee.
+Real-world problem: eye trackers are entering consumer devices, and a common
+safeguard is to share derived gaze signals (pupil size, blinks, eye speed)
+instead of raw screen coordinates. Is that enough to hide what someone reads?
+
+ML problem: binary classification of two-second gaze windows, vehicle or
+rectangle, for previously unseen participants, scored by balanced accuracy with
+equal weight per person. Feature group A includes mean gaze position; B removes
+it. The A–B difference shows how much information lies in where people look
+rather than how they look. Use code screens only; task names and screenshots are
+never model inputs.
+
+This is a closed-set, offline study with two known texts; not comprehension
+measurement, source reconstruction, arbitrary-program recognition, evidence of
+causation, or a privacy guarantee. A weak B result does not show that content
+cannot leak through other signals, models or larger datasets.
 
 The supervised experiment assumes labelled reference recordings and producer-side
 screen boundaries. It does not demonstrate an attack on an arbitrary unsegmented
 stream with no reference labels. Linear interpolation uses later samples.
 
+Framing revised 2026-11-02 (Eivind), after reading the V2 results: A/B was
+already in the plan committed before scores (`2c2edf8`), but making it the main
+question and adding the privacy motivation came afterwards. No data, code, plan
+or results changed.
+
 ## Requirement status
 
 | # | Requirement | Status and evidence |
 |---|---|---|
-| 1 | Practical and ML problem | Done: scope above; final report still needed |
+| 1 | Practical and ML problem | Done: privacy framing and A/B question above (revised 2026-11-02); final report still needed |
 | 2 | Justified preprocessing | Done for this analysis: A1 reuse and V2 time-quality rule |
 | 3 | Justified feature extraction | Done: documented 13 window summaries |
 | 4 | Selection/reduction or justified omission | Done: 13/11-feature selection; no PCA, reasons below |
@@ -197,6 +215,10 @@ Removing mean position reduces each family's mean here, but tuning choices also
 change. B results are weak: kNN is below dummy on average, and SVM B has a .458
 fold. Do not hide these negatives or expand searches to chase a desired result.
 
+For the main question: with mean position, the best model reaches .616 and the
+position-only stump .581; without it, the three families reach .498–.534 against
+the .500 dummy. Here most usable signal is where people look, not how.
+
 The stump uses mean y in all folds, with training thresholds about 233–252 px.
 Its BA is near kNN/SVM A, but its errors differ: pooled rectangle recall .959 and
 vehicle recall .167. Tree A's pooled recalls are .492 and .725. A similar BA does
@@ -246,10 +268,11 @@ See results/model_comparison_v2/verification.json. Source and plan hashes match.
    requires different base-learner families. Neither is assumed resolved/complete.
    Also clarify whether the deep model can count among point 5's three algorithms.
 2. Review these errors and limitations with Eivind. Then predeclare a bounded
-   boosting/bagging comparison with appropriate distinct base learners. Do not
-   infer a best learner from tiny validation differences alone.
+   boosting/bagging comparison with appropriate distinct base learners, on both
+   feature groups. Do not infer a best learner from tiny validation differences.
 3. Later implement/tune a small DNN or CNN, with grouped evaluation and justified
-   hyperparameters. Do not start this larger part in the current session.
+   hyperparameters. Mirror A/B: absolute x/y versus x/y centred per window.
+   Do not start this larger part in the current session.
 4. Freeze analysis/model choices, evaluate the same locked test once, compare all
    required methods and write the final report.
 

@@ -1,4 +1,8 @@
-# Assignment 3: known code-task identification from eye tracking
+# Assignment 3: which code is read, with and without gaze position
+
+Main question: can eye tracking tell which of two code snippets an unseen person
+reads, and does it still work when absolute gaze position is removed, a common
+privacy safeguard? See *Problem and scope* in the worklog.
 
 Start with [WORKLOG.md](WORKLOG.md): agreed scope, decisions, evidence, limitations
 and handover. [Official assignment](assignment.pdf). A1 files stay at the root.

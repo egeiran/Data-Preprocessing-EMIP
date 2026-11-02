@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "prediction_rows": 3844,
+  "participant_metric_rows": 92,
+  "independent_sklearn_metrics_and_confusions": "PASS",
+  "selected_parameters_match_inner_search_only": "PASS",
+  "locked_test_predictions": 0
+}

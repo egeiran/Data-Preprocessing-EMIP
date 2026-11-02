@@ -28,12 +28,15 @@
   },
   "fixed": {
     "tree_and_svm": "class_weight balanced; kNN Euclidean with StandardScaler inside the pipeline, as V2",
-    "adaboost": "SAMME, 200 rounds, base DecisionTreeClassifier with class_weight balanced; all features",
+    "adaboost": "SAMME, 200 rounds, class-balanced initial window weights, unweighted base DecisionTreeClassifier; all features (amended, see amendments)",
     "bagged_knn": "50 members; bootstrap rows; each member draws max_features without replacement; StandardScaler + Euclidean uniform kNN inside every member",
     "permutation_importance": "10 repeats, pooled balanced accuracy, outer validation windows, seed 42"
   },
   "controls": ["most_frequent_dummy", "position_only_depth_one_tree"],
   "timing": {"batches": 5, "min_seconds_per_batch": 0.02, "max_calls_per_batch": 1000, "warmup": true},
+  "amendments": [
+    "2026-11-02, before any ensemble score: the declared base-tree class_weight=balanced crashed AdaBoost on its first inner fit ('worse than random'), because the tree optimises balanced weights while AdaBoost scores it under uniform weights. Balance moved to AdaBoost's initial window weights; grid, rounds and all other choices unchanged."
+  ],
   "test_evaluation": "forbidden until final_test_plan.json is committed",
   "search_budget": "18 settings (6 x 3 k) for each basic family and 6 for each ensemble, per feature group; 3 inner x 3 outer folds; no adaptive expansion",
   "justification": {

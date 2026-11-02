@@ -56,8 +56,8 @@ or results changed.
 | 4 | Selection/reduction or justified omission | Done: A/B design, no PCA, and V3 mutual-information selection inside CV |
 | 5 | Three algorithms and justification | Done: tree, kNN and kernel SVM, equal bounded search budgets |
 | 6 | Compare/explain three algorithms | Done for development: nested OOF comparison and class/person errors |
-| 7 | Boosting/bagging, different base algorithms | Planned; clarify base-learner wording first |
-| 8 | Basic vs boosting vs bagging vs transfer | Partial: basic models only; transfer undefined |
+| 7 | Boosting/bagging, different base algorithms | Done for development: AdaBoost (trees) and bagged kNN on A3/B3 |
+| 8 | Basic vs boosting vs bagging vs transfer | Partial: basic and ensembles done; transfer = CNN pretraining (ask staff) |
 | 9 | CNN/deep network with justified tuning | Planned; not started |
 | 10 | Complexity, time, performance in context | Partial: basics measured; ensembles/deep model and final comparison pending |
 
@@ -307,6 +307,38 @@ of 184 person rows, inner-only parameter choice, no locked-test predictions).
 - Permutation importance (descriptive): A3 relies on mean x/y and horizontal
   spread; B3 SVM on horizontal spread, saccade and fixation rates. B keeps relative
   spatial structure, e.g. line length, so B is not purely "how" people look.
+
+## V3 boosting and bagging: development only
+
+`models.py ensembles` (11 min, mostly permutation importance for bagged kNN);
+results in results/models_v3/ensembles/. Verification PASS as above.
+
+Plan amendment, before any ensemble score: the declared base-tree
+`class_weight=balanced` crashed AdaBoost on its first inner fit ("worse than
+random"). The tree optimises balanced weights, but AdaBoost scores it under
+uniform weights, so a balanced stump can exceed 0.5 weighted error. Balance moved
+to AdaBoost's initial window weights; grid and rounds unchanged. Recorded under
+`amendments` in model_plan_v3.json.
+
+| Model | Person BA A3 / B3 | person SD | Outer-fold range A3 / B3 |
+|---|---|---|---|
+| AdaBoost (trees) | .659 / .561 | .089 / .081 | .648–.672 / .527–.588 |
+| Bagged kNN | .558 / .518 | .111 / .096 | .486–.612 / .487–.553 |
+
+- AdaBoost A3 is the highest development score so far and the most stable over
+  folds; it is .051 above the best basic A3 model and .078 above the position
+  stump. A3 selected depth 2–3 with learning rate 1 in every fold; B3 picked the
+  slow rate .1 in two of three folds.
+- Bagged kNN improves on single kNN for A3 (.535 to .558) but not for B3 (.528 to
+  .518); kNN remains the weakest family. Feature subsampling was chosen in four of
+  six folds.
+- B3 stays near .52–.56 for every family. Boosting raises A much more than B, so
+  the A–B gap widens: ensembles extract more from position, not from dynamics.
+- Cost (median refit / prediction of one outer validation fold): AdaBoost
+  .77–.91 s / ~30 ms with 600–2,868 nodes; bagged kNN .13–.15 s / .27–.47 s,
+  70–140x single kNN (3–4 ms), because all 50 members search their neighbours.
+  V3 basic refits take ~.07–.10 s, mostly the mutual-information filter (V2 tree
+  fit was 8 ms).
 
 ## Time, complexity and verification
 

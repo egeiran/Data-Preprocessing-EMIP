@@ -26,6 +26,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.utils.class_weight import compute_sample_weight
 
 from data import A3, ROOT, POSITION, sha256, write_json
 from compare import metrics, participant_metrics, inner_partitions, repeated_time
@@ -34,6 +35,16 @@ from fixations import FEATURE_GROUPS_V3, KEY, fingerprint
 PLAN = A3 / "model_plan_v3.json"
 PARTS = {"basic": ["tree", "knn", "svm_rbf"], "ensembles": ["adaboost", "bagged_knn"]}
 SELECTED = ("tree", "knn", "svm_rbf")
+
+
+class BalancedAdaBoost(AdaBoostClassifier):
+    """AdaBoost starting from class-balanced window weights. Balancing the base tree
+    instead makes it optimise a different distribution than the one AdaBoost scores
+    it on, so the first stump can exceed 0.5 weighted error (see plan amendment)."""
+
+    def fit(self, X, y, sample_weight=None):
+        assert sample_weight is None
+        return super().fit(X, y, sample_weight=compute_sample_weight("balanced", y))
 
 
 def grid(plan, family):
@@ -57,8 +68,8 @@ def estimator(family, parameters, seed, plan):
                  SVC(**parameters, kernel="rbf", class_weight="balanced", cache_size=128))
         return Pipeline([("scale", StandardScaler()), ("select", select), ("model", model)])
     if family == "adaboost":
-        base = DecisionTreeClassifier(class_weight="balanced", random_state=seed)
-        return AdaBoostClassifier(estimator=base, n_estimators=200, random_state=seed).set_params(**parameters)
+        base = DecisionTreeClassifier(random_state=seed)
+        return BalancedAdaBoost(estimator=base, n_estimators=200, random_state=seed).set_params(**parameters)
     if family == "bagged_knn":
         base = make_pipeline(StandardScaler(), KNeighborsClassifier(p=2, n_jobs=1))
         return BaggingClassifier(estimator=base, n_estimators=50, bootstrap=True, bootstrap_features=False,

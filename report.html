@@ -5,7 +5,7 @@ table{border-collapse:collapse;margin:1em 0;font-size:9.5pt} th,td{border:1px so
 th{background:#f2f2f2} code{background:#f4f4f4;padding:1px 4px;font-size:9.5pt} pre{background:#f4f4f4;padding:8px;font-size:9pt}
 img{max-width:100%} em{color:#555} hr{border:0;border-top:1px solid #ccc}
 </style><h1>Assignment 1: Data Preprocessing</h1>
-<p><strong>Eivind Systad Geiran</strong> - IT3212 - EMIP eye-tracking dataset</p>
+<p><strong>Eivind Systad Geiran and Trym Andreas Johnsen</strong> - IT3212 - EMIP eye-tracking dataset</p>
 <p>Code: https://github.com/egeiran/Data-Preprocessing-EMIP (<code>explore.py</code> task 1, <code>cleaning.py</code> 2, <code>outliers.py</code> 3,
 <code>transform.py</code> 4 to 6, <code>figures.py</code>).</p>
 <h2>The dataset</h2>
@@ -464,6 +464,28 @@ dimensions of information.</p>
 <p>The cost is interpretability. <code>L POR X</code> means "gaze x in pixels", whereas PC1 is a weighted
 blend of every sensor channel and means nothing physical. PCA is therefore reported, but the
 original features are kept as primary so that results stay explainable.</p>
+<h2>Individual contributions</h2>
+<p>Eivind Systad Geiran developed the preprocessing pipeline, carried out the analysis for tasks
+1 to 6, and wrote the corresponding report sections and figure scripts.</p>
+<p>Trym Andreas Johnsen joined later and independently reviewed and validated the transformation pipeline for Tasks 4–6. I added a separate memory-efficient validation script,
+<code>trym_review.py</code>, to reproduce and verify the modelling dataset, participant-level train/test
+split, feature scaling and PCA explained-variance results. I verified that there is no
+participant overlap between the training and test sets and that scaling and PCA are based on training data only, avoiding information leakage from the test set in these transformations.
+The validation script is not a replacement for the original pipeline.</p>
+<h2>Personal reflections</h2>
+<h3>Eivind</h3>
+<p>What I learned most from this preprocessing task is how you make sure data can be trusted. 
+There were no NaNs in this dataset, just zeros, and some invalid datapoints we had to factor out. 
+The tracker writes a row whether or not it saw the eye, so missing data does not look missing. 
+This was also my first time fixing holes by interpolating short periods of bad readings instead of just removing them. 
+A short gap is usually a blink, so filling it keeps the recording continuous. </p>
+<h3>Trym</h3>
+<p>Before beginning working on this assignment, I mainly thought of data preprocessing as cleaning missing or incorrect values. 
+Reviewing the pipeline showed me that preprocessing also determines whether later machine learning results can be trusted. 
+I became aware that it is also important to split and transform the data in a way that gives a fair test later. 
+For example, data from the same participant should not be in both the training and test sets. 
+I also learned that scaling and PCA should be fitted using only the training data, and then the same transformations should be applied to the test data. 
+This prevents the test data from influencing how the training data is prepared.</p>
 <h2>References</h2>
 <ol>
 <li>EMIP Workshop. <em>Distributed Collection of Eye Movement Data in Programming: Dataset</em>.

@@ -206,6 +206,23 @@ comparison_plan.json, committed in `2c2edf8` before new scores, specifies:
 - No full-development final fit or final-test evaluation yet. The selected outer
   refits estimate the bounded selection procedure, not a final deployed model.
 
+## V3 model and deep-model plans (declared before scores)
+
+Committed before any V3, ensemble, sequence or CNN score:
+
+- model_plan_v3.json: tree/kNN/RBF-SVM on A3/B3 with the V2 grids, jointly tuned
+  with a mutual-information SelectKBest filter (k = 5, 10, all) fitted inside each
+  training pipeline. AdaBoost (SAMME, 200 shallow balanced trees; depth 1/2/3 x
+  learning rate .1/1) and bagged kNN (50 members, scaler+kNN; k 15/31 x feature
+  share .5/.75/1). Boosting uses trees and bagging uses kNN, as point 7 asks.
+  Same outer folds, inner partitions, selection rule, controls and timing as V2.
+- deep_plan.json: 500-step, 6-channel sequences of the same V2 windows. A keeps
+  absolute x/y; B centres x/y per window. Small 1D CNN, filters 16/32 x kernel
+  5/9/15, early stopping on inner people, refit at median best epoch, seed 42 plus
+  two spread seeds. Transfer: pretrain on instruction vs answer screens of the
+  partition's training people only, then freeze or fine-tune (inner-selected).
+- Locked test stays untouched until final_test_plan.json is committed.
+
 ## Executed commands and evidence
 
 Run from repo root with existing .venv; no new packages were installed.

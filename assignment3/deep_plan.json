@@ -1,0 +1,49 @@
+{
+  "version": "v3_deep",
+  "decision_basis": "declared after V2 scores and V3 feature distributions, before any sequence or deep-model score",
+  "seed": 42,
+  "framework": "PyTorch on CPU, deterministic algorithms",
+  "windows": "the same V2 code windows as V3 (assignment3/cache/windows_v3.parquet keys)",
+  "sequence": {
+    "steps": 500,
+    "grid": "index = floor((Time - window start + 2 ms) / 4 ms); at most one sample per step",
+    "channels": ["x", "y", "pupil_left", "pupil_right", "measured_mask", "interpolated_flag"],
+    "missing": "steps without a sample are 0 in every channel, so holes are never compressed",
+    "A_seq_with_position": "x / 1920 and y / 1080, absolute screen position",
+    "B_seq_without_absolute_position": "x and y minus their window mean over present samples, then / 1920 and / 1080",
+    "pupil": "standardised with mean/SD of present samples from training people only, then missing steps reset to 0"
+  },
+  "architecture": "3 blocks of Conv1d(same padding) + BatchNorm + ReLU, MaxPool(2) after blocks 1-2; channels f, 2f, 2f; global average pool; dropout 0.3; linear to 2 classes",
+  "grid": {"filters": [16, 32], "kernel_size": [5, 9, 15]},
+  "fixed": {"optimizer": "Adam", "learning_rate": 0.001, "batch_size": 32, "max_epochs": 60, "patience": 10,
+            "loss": "cross-entropy with balanced class weights from training windows"},
+  "outer_folds": "assignment3/results/first_validation/folds.json",
+  "inner_group_folds": 3,
+  "inner_partitions": "identical to V2/V3 (compare.inner_partitions, seed 42)",
+  "early_stopping": "inner validation equal-participant balanced accuracy, checked every epoch; first best epoch wins ties",
+  "selection": "pooled inner out-of-fold equal-participant balanced accuracy at each fold's best epoch; first configuration wins exact ties",
+  "selection_caveat": "inner scores are optimistic because the same inner validation people also stop training; the outer validation people are never used",
+  "refit": "all outer-training people for the median best epoch of the selected configuration",
+  "seeds": {"primary": 42, "spread": [43, 44], "reporting": "metrics use seed 42; seeds 43-44 only report refit spread"},
+  "transfer": {
+    "interpretation": "transfer learning: pretrain the CNN on a related source task, then fine-tune on vehicle/rectangle",
+    "source_task": "instruction screen (calibration or comprehension instructions) vs answer screen (multiple-choice), from the same recordings",
+    "source_windows": "2 s windows anchored at raw screen messages with the V1 coverage/gap rules and the V2 >=80% measured rule",
+    "source_people": "only the training people of the current partition: inner-training people for inner CV, outer-training people for the refit; never validation or locked-test people",
+    "source_training": "same architecture as the scratch CNN selected in that outer fold and feature group; 30 epochs; balanced class weights; seed 42",
+    "fine_tune_grid": {"mode": ["freeze", "finetune"]},
+    "modes": {"freeze": "convolution and batch-norm layers fixed, new head trained at learning rate 0.001",
+              "finetune": "all layers trained at learning rate 0.0003 from the pretrained weights"},
+    "comparison": "transfer vs the same scratch CNN, on both sequence groups, same outer folds"
+  },
+  "timing": "wall time for each refit; prediction timed in 5 warm batches of the outer validation set; trainable parameter count",
+  "test_evaluation": "forbidden until final_test_plan.json is committed",
+  "justification": {
+    "why_cnn": "1D convolutions learn local temporal patterns (fixations, saccades, blinks) directly from the preprocessed samples, which the assignment allows",
+    "filters": "capacity; 16 vs 32 tests whether more feature maps help with about 600 training windows",
+    "kernel_size": "first-layer span of 20, 36 or 60 ms brackets saccade durations; after pooling, the last block spans roughly one fixation-saccade cycle",
+    "fixed_choices": "Adam at 0.001 and batch 32 are standard defaults; early stopping and dropout limit overfitting on a small dataset",
+    "B_centering": "removing each window's mean position mirrors feature group B: relative movement stays, absolute screen location goes",
+    "source_task_choice": "it uses the same eye tracker, people and reading behaviour, but its label is unrelated to which program is shown"
+  }
+}

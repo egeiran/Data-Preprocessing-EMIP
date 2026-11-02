@@ -57,8 +57,8 @@ or results changed.
 | 5 | Three algorithms and justification | Done: tree, kNN and kernel SVM, equal bounded search budgets |
 | 6 | Compare/explain three algorithms | Done for development: nested OOF comparison and class/person errors |
 | 7 | Boosting/bagging, different base algorithms | Done for development: AdaBoost (trees) and bagged kNN on A3/B3 |
-| 8 | Basic vs boosting vs bagging vs transfer | Partial: basic and ensembles done; transfer = CNN pretraining (ask staff) |
-| 9 | CNN/deep network with justified tuning | Planned; not started |
+| 8 | Basic vs boosting vs bagging vs transfer | Done for development; transfer = CNN pretraining on other screens (ask staff) |
+| 9 | CNN/deep network with justified tuning | Done for development: 1D CNN, nested tuning, seed spread |
 | 10 | Complexity, time, performance in context | Partial: basics measured; ensembles/deep model and final comparison pending |
 
 The one-page PDF says 200 points, pass at 130. No deadline, submission format,
@@ -339,6 +339,40 @@ to AdaBoost's initial window weights; grid and rounds unchanged. Recorded under
   70–140x single kNN (3–4 ms), because all 50 members search their neighbours.
   V3 basic refits take ~.07–.10 s, mostly the mutual-information filter (V2 tree
   fit was 8 ms).
+
+## Sequence CNN and transfer: development only
+
+src/sequences.py builds 500-step, 6-channel sequences (x, y, two pupils, measured
+mask, interpolated flag) for the same V2 windows; empty steps stay zero. 180 of
+~661k code samples share a grid step and are dropped (counted). Transfer source:
+658 instruction/answer-screen windows from the 23 development people (139
+instruction, 519 answer screen; 753 rejected by the V1/V2 rules).
+
+Plan amendment, before any sequence score: the declared +2 ms rounding put a
+window's last sample on step 500; floor indexing is used instead (deep_plan.json
+`amendments`). Implementation note: torch on macOS arm64 has no oneDNN, so
+`nn.Conv1d` ran ~25x slower; cnn.py subclasses it with an unfold + einsum forward
+(same parameters and initialisation; outputs agree to 3e-6).
+
+`cnn.py` ran 3 h 50 min (results/deep_v3/). Verification PASS as for V3.
+
+| Model | Person BA A / B | person SD | Outer-fold range A / B | seed SD (mean) |
+|---|---|---|---|---|
+| CNN from scratch | .687 / .483 | .110 / .152 | .620–.757 / .404–.550 | .022 / .022 |
+| CNN + transfer | .684 / .499 | .105 / .094 | .635–.747 / .474–.521 | .020 / .017 |
+
+- CNN A is the best development model (AdaBoost A3 .659); with absolute x/y the
+  network learns where on screen the reading happens. CNN B is at or below chance
+  in every fold: centred sequences carry no usable task signal for this network.
+- Selected settings vary by fold (filters 16/32, kernels 5/9/15); refits used
+  5–40 epochs. Seeds 43–44 move fold scores by ~.02, less than fold differences.
+- Transfer does not help: .684 vs .687 with position, .499 vs .483 without.
+  Fine-tuning won in five of six cases; one B fold stopped after two epochs. The
+  source task (instruction vs answer screen) has only 290–440 windows per partition.
+- Timing caveat: from about 14:20 three unrelated Python jobs used ~390% CPU and
+  Low Power Mode was on, so CNN fit times after fold 1 are inflated (43% average
+  CPU for the run). Item 10 uses the locked-test refit timings instead, measured
+  on an otherwise idle machine.
 
 ## Time, complexity and verification
 

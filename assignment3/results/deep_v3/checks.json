@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "development_windows": 961,
+  "people": 23,
+  "predictions": 3844,
+  "search_candidates": 48,
+  "checks": [
+    "sequence and source digests",
+    "disjoint nested person folds",
+    "no locked-test person in target or source data",
+    "pretraining only on the partition's training people",
+    "pupil statistics from training windows only",
+    "B sequences centred per window",
+    "unique OOF predictions",
+    "independent sklearn recomputation",
+    "inner-only selection"
+  ]
+}

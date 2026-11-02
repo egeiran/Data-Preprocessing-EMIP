@@ -99,3 +99,15 @@ code checks V2 by keys and records portable content fingerprints (see WORKLOG).
 Follows `model_plan_v3.json`: tree/kNN/RBF-SVM tuned jointly with a
 mutual-information filter, then AdaBoost (trees) and bagged kNN, all on A3/B3 with
 the V2 folds. Each part writes its own directory under `results/models_v3/`.
+
+## Sequence CNN and transfer
+
+```bash
+.venv/bin/python -B assignment3/src/sequences.py
+.venv/bin/python -B assignment3/src/cnn.py
+```
+
+Follows `deep_plan.json`: 500-step gaze sequences (ignored `cache/sequences.npz`),
+a small 1D CNN tuned with nested person folds, and transfer from instruction vs
+answer screens. Needs PyTorch (CPU build; on Linux use the CPU wheel index to avoid
+CUDA downloads). The run takes several hours on a laptop CPU.

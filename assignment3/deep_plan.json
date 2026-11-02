@@ -6,7 +6,7 @@
   "windows": "the same V2 code windows as V3 (assignment3/cache/windows_v3.parquet keys)",
   "sequence": {
     "steps": 500,
-    "grid": "index = floor((Time - window start + 2 ms) / 4 ms); at most one sample per step",
+    "grid": "index = floor((Time - window start) / 4 ms); at most one sample per step, extra samples counted (amended, see amendments)",
     "channels": ["x", "y", "pupil_left", "pupil_right", "measured_mask", "interpolated_flag"],
     "missing": "steps without a sample are 0 in every channel, so holes are never compressed",
     "A_seq_with_position": "x / 1920 and y / 1080, absolute screen position",
@@ -36,6 +36,9 @@
               "finetune": "all layers trained at learning rate 0.0003 from the pretrained weights"},
     "comparison": "transfer vs the same scratch CNN, on both sequence groups, same outer folds"
   },
+  "amendments": [
+    "2026-11-02, before any sequence or deep-model score: the declared +2 ms rounding put a window's last sample on step 500 whenever the sample phase exceeded 2 ms. Floor indexing is always in range for half-open windows; collisions are counted instead of assumed absent."
+  ],
   "timing": "wall time for each refit; prediction timed in 5 warm batches of the outer validation set; trainable parameter count",
   "test_evaluation": "forbidden until final_test_plan.json is committed",
   "justification": {

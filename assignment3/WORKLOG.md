@@ -374,6 +374,17 @@ window's last sample on step 500; floor indexing is used instead (deep_plan.json
   CPU for the run). Item 10 uses the locked-test refit timings instead, measured
   on an otherwise idle machine.
 
+## Locked-test plan (declared before any test prediction)
+
+final_test_plan.json and src/final_test.py were committed after all development
+results and before the test was touched. Every method (V2 basic, V3 basic with
+selection, AdaBoost, bagged kNN, CNN, CNN + transfer, both controls; A and B) is
+tuned with its own grid on three person folds over all 23 development people,
+refit on all 961 development windows and scored once on 369 windows from the 7
+locked people. Pid 18 (vehicle only) is excluded from two-class metrics, leaving
+six people; 95% person-bootstrap intervals and paired A-minus-B differences are
+descriptive. The script refuses to run if results/final_test/ exists.
+
 ## Time, complexity and verification
 
 Timing separates inner-search wall time from repeated selected-outer-refit fit

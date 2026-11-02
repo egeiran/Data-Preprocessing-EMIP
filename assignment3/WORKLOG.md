@@ -52,7 +52,7 @@ or results changed.
 |---|---|---|
 | 1 | Practical and ML problem | Done: privacy framing and A/B question above (revised 2026-11-02); final report still needed |
 | 2 | Justified preprocessing | Done for this analysis: A1 reuse and V2 time-quality rule |
-| 3 | Justified feature extraction | Done: documented 13 window summaries |
+| 3 | Justified feature extraction | Done: 13 window summaries, plus 8 V3 I-VT event features |
 | 4 | Selection/reduction or justified omission | Done: 13/11-feature selection; no PCA, reasons below |
 | 5 | Three algorithms and justification | Done: tree, kNN and kernel SVM, equal bounded search budgets |
 | 6 | Compare/explain three algorithms | Done for development: nested OOF comparison and class/person errors |
@@ -158,6 +158,25 @@ alternative is fold-training-only common clipping bounds. Trees need no scaling;
 kNN/SVM use StandardScaler inside each training pipeline. No PCA: the selected
 13/11 summaries are small and interpretable, and PCA would mix the position
 comparison. Original A1 behaviour is unchanged.
+
+### V3 event features (Eivind, 2026-11-02)
+
+feature_plan_v3.json fixed all thresholds before any V3 distribution or score.
+src/fixations.py runs I-VT on the same V2 windows and samples: centred three-sample
+speed, 30 deg/s, fixations >=60 ms, saccades >=2 samples, intervals <=20 ms. An
+interpolated sample or longer interval ends any event, because A1 fills blinks
+with straight lines. Events stay inside their window.
+
+Eight features: fixation rate, mean duration, time fraction; saccade rate, mean
+amplitude; horizontal, leftward (regressions plus line returns) and upward shares.
+Empty-event means/shares are 0; rates keep that information. All use coordinate
+differences only. Every real window was recomputed after a (128, -64) px screen
+shift with identical events and features. A3 = A + 8 (21), B3 = B + 8 (19).
+
+Development medians look physiological: 3.5 fixations/s, mean fixation 266 ms,
+91.6% of time in fixation, 3 saccades/s, amplitude 1.37 deg. Four development and
+19 locked-test windows have no qualifying fixation; these are counts only. Evidence
+is in results/features_v3/; the feature table is ignored cache/windows_v3.parquet.
 
 ## Fixed model plan and evaluation
 

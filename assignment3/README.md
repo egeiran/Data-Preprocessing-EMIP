@@ -76,3 +76,15 @@ Current person-average balanced accuracy: tree A/B .616/.527, kNN A/B .584/.498,
 SVM A/B .582/.534, dummy .500 and position-only stump .581. Read WORKLOG before
 interpreting these small development results. Reruns overwrite the same version's
 output directory; create a new version before changing analysis choices.
+
+## V3 event features
+
+```bash
+.venv/bin/python -B assignment3/src/fixations.py
+```
+
+Adds eight I-VT fixation/saccade features to the same V2 windows, with thresholds
+fixed in `feature_plan_v3.json`. Writes ignored `cache/windows_v3.parquet` and
+evidence in `results/features_v3/`. Parquet bytes differ between machines, so V3
+code checks V2 by keys and records portable content fingerprints (see WORKLOG).
+`uv run python -B …` works the same as `.venv/bin/python -B …`.

@@ -1,0 +1,40 @@
+{
+  "version": "v3_events",
+  "decision_basis": "fixed from eye-movement conventions and the 250 Hz sampling rate, before any V3 feature distribution or model score",
+  "input_windows": "assignment3/cache/windows_v2.parquet; V2 quality policy and windows unchanged",
+  "samples": "A1 cache code screens after the >1,000 deg/s velocity filter, exactly as in quality.py",
+  "algorithm": "I-VT velocity-threshold identification (Salvucci and Goldberg, 2000)",
+  "velocity": "left-eye screen coordinates, centred over three samples, A1 pixels-per-degree geometry",
+  "velocity_threshold_deg_s": 30,
+  "max_sample_interval_ms": 20,
+  "valid_velocity": "all three samples measured ('ok') and both intervals <= 20 ms; otherwise the middle sample is unclassified and ends any event",
+  "min_fixation_ms": 60,
+  "min_saccade_samples": 2,
+  "fixation_duration": "last minus first sample time plus one nominal 4 ms period",
+  "saccade_vector": "from the sample before the first to the sample after the last saccade sample",
+  "window_edges": "events never cross window edges; an event cut by an edge counts within its window",
+  "empty_event_fill": "means and fractions are 0 when a window has no qualifying event; rates keep that information",
+  "features": {
+    "fixation_rate_per_s": "qualifying fixations per window second",
+    "fixation_duration_mean_ms": "mean fixation duration",
+    "fixation_time_fraction": "summed fixation duration divided by window duration",
+    "saccade_rate_per_s": "qualifying saccades per window second",
+    "saccade_amplitude_mean_deg": "mean saccade vector length in degrees",
+    "horizontal_saccade_fraction": "share of saccades with |dx| >= |dy|",
+    "leftward_saccade_fraction": "share of horizontal saccades with dx < 0; includes regressions and line-return sweeps",
+    "upward_saccade_fraction": "share of saccades with |dy| > |dx| and dy < 0 (screen y grows downward)"
+  },
+  "translation_invariance": "every event feature uses only coordinate differences; checked by shifting all real windows",
+  "feature_groups": {
+    "A3_with_position": ["gaze_x_mean_px", "gaze_y_mean_px", "gaze_x_std_px", "gaze_y_std_px", "pupil_left_mean_mm", "pupil_left_std_mm", "pupil_right_mean_mm", "pupil_right_std_mm", "velocity_median_deg_s", "velocity_p90_deg_s", "a1_blink_rate_mean", "a1_gap_fraction_mean", "interpolated_fraction", "fixation_rate_per_s", "fixation_duration_mean_ms", "fixation_time_fraction", "saccade_rate_per_s", "saccade_amplitude_mean_deg", "horizontal_saccade_fraction", "leftward_saccade_fraction", "upward_saccade_fraction"],
+    "B3_without_absolute_position": ["gaze_x_std_px", "gaze_y_std_px", "pupil_left_mean_mm", "pupil_left_std_mm", "pupil_right_mean_mm", "pupil_right_std_mm", "velocity_median_deg_s", "velocity_p90_deg_s", "a1_blink_rate_mean", "a1_gap_fraction_mean", "interpolated_fraction", "fixation_rate_per_s", "fixation_duration_mean_ms", "fixation_time_fraction", "saccade_rate_per_s", "saccade_amplitude_mean_deg", "horizontal_saccade_fraction", "leftward_saccade_fraction", "upward_saccade_fraction"]
+  },
+  "justification": {
+    "why_events": "V2 summaries describe spread and speed but not reading structure; fixations and saccades are the standard units of reading research and may carry how-information without absolute position",
+    "threshold_30": "common I-VT default (Olsen, 2012, Tobii I-VT filter) for screen-based trackers",
+    "min_fixation_60": "the same source discards shorter fixations as noise; 60 ms is 15 samples at 250 Hz",
+    "interval_20": "same bound as V2 velocity features; longer intervals are holes, not movement",
+    "interpolated_samples": "A1 linear interpolation fills blinks with straight lines, so it would invent smooth fixations or saccades",
+    "no_tuning": "thresholds are conventional operating values, not tuned on this data"
+  }
+}

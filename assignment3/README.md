@@ -88,3 +88,14 @@ fixed in `feature_plan_v3.json`. Writes ignored `cache/windows_v3.parquet` and
 evidence in `results/features_v3/`. Parquet bytes differ between machines, so V3
 code checks V2 by keys and records portable content fingerprints (see WORKLOG).
 `uv run python -B …` works the same as `.venv/bin/python -B …`.
+
+## V3 models and ensembles
+
+```bash
+.venv/bin/python -B assignment3/src/models.py basic
+.venv/bin/python -B assignment3/src/models.py ensembles
+```
+
+Follows `model_plan_v3.json`: tree/kNN/RBF-SVM tuned jointly with a
+mutual-information filter, then AdaBoost (trees) and bagged kNN, all on A3/B3 with
+the V2 folds. Each part writes its own directory under `results/models_v3/`.

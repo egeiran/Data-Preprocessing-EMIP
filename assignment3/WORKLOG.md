@@ -53,7 +53,7 @@ or results changed.
 | 1 | Practical and ML problem | Done: privacy framing and A/B question above (revised 2026-11-02); final report still needed |
 | 2 | Justified preprocessing | Done for this analysis: A1 reuse and V2 time-quality rule |
 | 3 | Justified feature extraction | Done: 13 window summaries, plus 8 V3 I-VT event features |
-| 4 | Selection/reduction or justified omission | Done: 13/11-feature selection; no PCA, reasons below |
+| 4 | Selection/reduction or justified omission | Done: A/B design, no PCA, and V3 mutual-information selection inside CV |
 | 5 | Three algorithms and justification | Done: tree, kNN and kernel SVM, equal bounded search budgets |
 | 6 | Compare/explain three algorithms | Done for development: nested OOF comparison and class/person errors |
 | 7 | Boosting/bagging, different base algorithms | Planned; clarify base-learner wording first |
@@ -280,6 +280,33 @@ search optimism but does not turn them into fresh, untouched test people.
 No result demonstrates comprehension, arbitrary-code generalisation, causation
 or privacy protection after removing position. V1/V2 also differ in quality,
 nesting and tuning; do not attribute score differences to quality alone.
+
+## V3 basic models with feature selection: development only
+
+`models.py basic` (2 min on a laptop) follows model_plan_v3.json; results are in
+results/models_v3/basic/. Same people, windows, outer folds and inner partitions as
+V2, so differences are paired by person. Verification PASS (sklearn recomputation
+of 184 person rows, inner-only parameter choice, no locked-test predictions).
+
+| Model | V3 person BA | person SD | Outer-fold range | V2 person BA |
+|---|---|---|---|---|
+| Tree A3 / B3 | .607 / .509 | .088 / .102 | .573–.657 / .489–.530 | .616 / .527 |
+| kNN A3 / B3 | .535 / .528 | .138 / .108 | .491–.614 / .476–.615 | .584 / .498 |
+| RBF-SVM A3 / B3 | .607 / .558 | .133 / .096 | .526–.690 / .504–.595 | .582 / .534 |
+| Dummy / position stump | .500 / .581 | | | .500 / .581 |
+
+- Event features plus selection do not give a consistent gain: SVM improves on
+  both groups, tree falls slightly and kNN A falls. SVM B3 (.558) is now the best
+  position-free model, but its fold range starts at .504. The A–B gap remains for
+  tree and SVM; no B3 model is clearly above the position-only stump.
+- The filter chose k = all in 11 of 18 family/group/fold cases; k = 5 or 10 picked
+  different subsets per fold. Mutual information found no small stable subset.
+- Mean pupil size is often in the MI top five. A plausible cause is screen
+  luminance or task order (20 rectangle-first vs 13 vehicle-first), not reading;
+  untested, so mention it only as a limitation.
+- Permutation importance (descriptive): A3 relies on mean x/y and horizontal
+  spread; B3 SVM on horizontal spread, saccade and fixation rates. B keeps relative
+  spatial structure, e.g. line length, so B is not purely "how" people look.
 
 ## Time, complexity and verification
 

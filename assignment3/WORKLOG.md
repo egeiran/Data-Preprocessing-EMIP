@@ -14,9 +14,12 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
   transfer; one-time locked-test evaluation; figures and report.md. Each step's
   plan was committed before its scores; amendments are dated in the plan files.
 - Start with report.md, then the summary.csv in each results/ subdirectory.
-- Open: ask course staff what "transfer" means and about format/deadline;
-  Trym should confirm the reframing, his contribution text and the AI declaration;
-  personal reflections, if required, are for each author to write.
+- Open: (1) check A3 submission rules on Blackboard. A1 had a 3,000-word limit
+  (captions counted, code/references not); report.md is ~3,990 words without
+  references, so trim if the same limit applies. (2) Optionally confirm with staff
+  that "transfer" in point 8 means transfer learning; report.md states our reading.
+  (3) Trym should confirm the reframing and the AI declaration. (4) Personal
+  reflections or contribution statements, if required, are for each author.
 
 ## Problem and scope
 

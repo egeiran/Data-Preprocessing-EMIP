@@ -407,18 +407,6 @@ closed two-program setting, though the derived signals are not entirely free of 
 - **Six test people.** The test intervals are wide, and pid 18 has only one class.
 - **Transfer interpretation.** Our reading of "transfer" may differ from what the course intends.
 
-## Individual contributions
-
-Trym Andreas Johnsen set up Assignment 3: the two-second windows built from the Assignment 1
-data, the quality audit and the V2 rule, the first nested comparison of tree, kNN and SVM with
-and without position, and the shared worklog with its locked-test and plan-before-results
-rules.
-
-Eivind Systad Geiran reframed the problem around position and privacy, reproduced Trym's
-results on a second machine, and added the fixation and saccade features, the
-mutual-information feature selection, boosting and bagging, the CNN with transfer learning,
-the locked-test evaluation, the figures and this report.
-
 ## References
 
 1. EMIP Workshop. *Distributed Collection of Eye Movement Data in Programming: Dataset*.
@@ -430,8 +418,7 @@ the locked-test evaluation, the figures and this report.
 
 ## AI declaration
 
-AI assistants were used for writing and checking code, for the figure and export scripts, and
-for drafting and editing the report text; Claude (Anthropic) was used for the parts listed
-under Eivind's contribution. Every method choice was fixed in a plan file before results
-existed, every number in this report is read from the committed result files, and the
-authors checked the choices, numbers and interpretations.
+AI assistants, including Claude (Anthropic), were used for writing and checking code, for the
+figure and export scripts, and for drafting and editing the report text. Every method choice
+was fixed in a plan file before results existed, every number in this report is read from the
+committed result files, and the authors checked the choices, numbers and interpretations.

@@ -129,7 +129,7 @@ non-linear dependence and is fitted only on training people. The ensembles do no
 filter: boosted trees select features at every split, and bagging already draws random
 feature subsets.
 
-**What it found.** The inner folds chose k = all in 11 of 18 cases. When k = 5 or 10 won, the
+**What it found.** The inner folds chose k = all in 12 of 18 cases. When k = 5 or 10 won, the
 chosen features differed between folds. Mutual information therefore found no small, stable
 subset. Mean pupil size was often among the top five. A likely reason is screen luminance or
 task order rather than reading behaviour; this is a limitation, not a finding.
@@ -145,11 +145,28 @@ purely "how" people look.
 
 ## 5. Three algorithms
 
-| Algorithm | Why it fits this problem | Tuned (6 settings x 3 k values) |
+The data are small and tabular: 961 development windows from 23 people, about 640 in each
+outer training set, and 19–21 features in different units (pixels, millimetres, degrees per
+second, fractions). The three algorithms suit such data and answer the question in different
+ways.
+
+| Algorithm | Why it fits this problem | Tuned values |
 |---|---|---|
-| Decision tree | axis-aligned rules that can be read and checked; no scaling needed | depth 2/4/6, minimum leaf 5/10 |
-| k-nearest neighbours | no training assumptions; classifies by similarity to known windows | k = 5/15/31, uniform/distance weights |
-| RBF-kernel SVM | smooth non-linear boundary with explicit regularisation | C = 0.1/1/10, gamma = 0.01/0.1 |
+| Decision tree | readable rules show which signal identifies the program, which is the privacy question itself; no scaling across units; extends the depth-one position stump | depth 2/4/6, minimum leaf 5/10 windows |
+| k-nearest neighbours | no assumption about the shape of the classes; tests directly whether windows of the same program lie close together | k = 5/15/31, uniform/distance votes |
+| RBF-kernel SVM | non-linear boundary with explicit regularisation, which limits overfitting with few people | C = 0.1/1/10, gamma = 0.01/0.1 |
+
+**Why these values.** Each family gets six settings, crossed with the three k values of the
+feature filter (section 4). For the tree, depth 2 is one step above the position stump, and
+depth 6 allows up to 64 leaves; with at least 10 windows per leaf, that is as many as 640
+training windows can fill. For kNN, odd k avoids tied votes, and the range goes from local (5)
+to smooth (31, about 5% of the training windows). For the SVM, C spans strong to weak
+regularisation on a log scale, and the two gamma values lie on either side of scikit-learn's
+default (1/number of features, about 0.05 for 19–21 standardised features).
+
+**Why not the others.** Naive Bayes assumes that features are independent within a class, but
+several are strongly related, for example left and right pupil size, which react together. A
+neural network is the subject of section 9 and would be counted twice here.
 
 The three have different inductive biases: rules on single features, local similarity in
 the full space, and a global smooth margin. This makes their disagreement informative. kNN
@@ -177,12 +194,17 @@ to near chance. SVM keeps the most (.558), but one of its outer folds is at .504
 **Similar accuracy, different errors.** The stump predicts rectangle for 96% of rectangle
 windows but only 17% of vehicle windows, because it learned a single y-threshold. Tree and
 SVM with A3 have more even class recalls (.56/.63 and .61/.59). kNN favours the majority
-class (vehicle recall .69, rectangle .41), because uniform votes among neighbours follow the
-class balance.
+class (vehicle recall .69, rectangle .41), because it has no class weights, so votes among
+neighbours follow the class balance.
 
-**Why kNN is weakest.** It weights every feature equally after scaling. With 19–21
-mostly weak features, the distance is dominated by noise. Trees and SVMs can down-weight
-irrelevant directions.
+**Why kNN is weakest with position.** kNN weights every feature equally after scaling, so the
+two informative position features are diluted by 19 weak ones in the distance. A tree avoids
+this by splitting only on features that separate the classes. The RBF-SVM uses the same
+equal-weight distance and cannot ignore features either. A likely reason for its advantage is
+that it fits a regularised boundary from weighted contributions of many training windows (737
+of 961 are support vectors in the final model), instead of an equal vote among the 5–31
+nearest windows. Without position, no feature is strong, and the three are within .05 of each
+other.
 
 **Uncertainty.** Single people range from .44 to .80 (tree, A3) and from .34 to .89 (SVM,
 A3), and the person SD is .09–.14. With three folds and 23 people, differences of a few
@@ -334,9 +356,11 @@ repeated with three seeds; seed changes move fold scores by about .02, less than
 differences between folds.
 
 **Results.** With absolute position, the CNN is the best development model (.687; folds
-.620–.757). Without it, the CNN is at or below chance in every fold (.483; .404–.550).
-Centred sequences carry spread, speed, pupil and fixation structure, yet the network finds no
-reliable difference between the programs in them. This agrees with the feature-based models.
+.620–.757). Without it, the CNN is near chance (.483; folds .404–.550). Centred sequences
+carry spread, speed, pupil and fixation structure, yet the network finds no reliable
+difference between the programs in them. The feature-based models do find a weak signal here
+(.51–.56), so about 640 training windows are probably too few for the network to learn from
+raw sequences what the hand-made summaries provide directly.
 
 ## 10. Complexity, computation time and performance
 
@@ -373,8 +397,10 @@ tuning of every method, including the CNNs, took under five minutes on the idle 
 **In terms of the machine-learning problem.** With absolute position, more capacity buys
 accuracy: from a one-split stump (.58) to a 39-node tree (.61 / .73), AdaBoost (.66 / .71) and
 the CNN (.69 / .75), at a cost that grows from microseconds to seconds. Without position, extra
-capacity buys nothing. A 0.1 ms tree, an 8 ms ensemble and a 25,000-weight CNN all land between
-chance and the position stump. The limit is the information in the input, not the model.
+capacity buys nothing. A 0.1 ms tree and an 8 ms ensemble reach .51–.56, below the position
+stump, and the CNN falls to chance (.48). The limit is therefore partly the
+input, which keeps only a weak signal, and partly the amount of data: the hand-made features
+give the simple models what the CNN would have to learn from about 640 windows.
 
 **In terms of the real-world problem.** Computation is no barrier for anyone holding gaze data.
 Every model classifies 12 minutes of gaze in under 0.2 s on one CPU thread, and even the CNN

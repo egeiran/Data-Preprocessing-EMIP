@@ -305,7 +305,8 @@ of 184 person rows, inner-only parameter choice, no locked-test predictions).
   both groups, tree falls slightly and kNN A falls. SVM B3 (.558) is now the best
   position-free model, but its fold range starts at .504. The A–B gap remains for
   tree and SVM; no B3 model is clearly above the position-only stump.
-- The filter chose k = all in 11 of 18 family/group/fold cases; k = 5 or 10 picked
+- The filter chose k = all in 12 of 18 family/group/fold cases (corrected from 11 on
+  2026-11-03 after recounting `selected_parameters` in fold_metrics.csv); k = 5 or 10 picked
   different subsets per fold. Mutual information found no small stable subset.
 - Mean pupil size is often in the MI top five. A plausible cause is screen
   luminance or task order (20 rectangle-first vs 13 vehicle-first), not reading;

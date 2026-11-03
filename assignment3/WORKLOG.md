@@ -6,18 +6,17 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
 
 ## Current handover
 
-- Initial A3 snapshot: `2be417f`; quality policy and search plan: `2c2edf8`.
-- V2 quality review and nested tree/kNN/RBF-SVM comparison are implemented, run
-  and checked. Start with `results/model_comparison_v2/summary.csv` and the
-  participant CSV. All V1 result files remain byte-for-byte unchanged.
-- No final-test predictions, final full-development model, ensembles or deep
-  network have been run. No push. Personal Git identity is Trym Johnsen's existing
-  configuration; no Git identity settings were changed.
-- 2026-11-02 (Eivind): problem reframed around the A/B position comparison and
-  gaze-data privacy. Text only; see Problem and scope.
-- Next: review class errors and these limits, resolve the course ambiguities,
-  then plan boosting/bagging and the deep model on both feature groups. Do not
-  expand searches just to improve scores.
+- Trym (to `4656945`): windows, V1/V2 quality, nested tree/kNN/RBF-SVM on A/B.
+  All V1/V2 result files remain byte-for-byte unchanged.
+- Eivind (branch `eivind/assignment3`, from 2026-11-02): problem reframed around
+  A vs B and gaze-data privacy; V2 reproduced on macOS; V3 I-VT event features;
+  mutual-information selection; AdaBoost and bagged kNN; sequence CNN with
+  transfer; one-time locked-test evaluation; figures and report.md. Each step's
+  plan was committed before its scores; amendments are dated in the plan files.
+- Start with report.md, then the summary.csv in each results/ subdirectory.
+- Open: ask course staff what "transfer" means and about format/deadline;
+  Trym should confirm the reframing, his contribution text and the AI declaration;
+  personal reflections, if required, are for each author to write.
 
 ## Problem and scope
 
@@ -59,7 +58,7 @@ or results changed.
 | 7 | Boosting/bagging, different base algorithms | Done for development: AdaBoost (trees) and bagged kNN on A3/B3 |
 | 8 | Basic vs boosting vs bagging vs transfer | Done for development; transfer = CNN pretraining on other screens (ask staff) |
 | 9 | CNN/deep network with justified tuning | Done for development: 1D CNN, nested tuning, seed spread |
-| 10 | Complexity, time, performance in context | Partial: basics measured; ensembles/deep model and final comparison pending |
+| 10 | Complexity, time, performance in context | Done: sizes and timings for every method, locked test run once |
 
 The one-page PDF says 200 points, pass at 130. No deadline, submission format,
 minimum sample size or library restriction is stated there; check course-wide
@@ -368,7 +367,8 @@ window's last sample on step 500; floor indexing is used instead (deep_plan.json
   5–40 epochs. Seeds 43–44 move fold scores by ~.02, less than fold differences.
 - Transfer does not help: .684 vs .687 with position, .499 vs .483 without.
   Fine-tuning won in five of six cases; one B fold stopped after two epochs. The
-  source task (instruction vs answer screen) has only 290–440 windows per partition.
+  source task (instruction vs answer screen) has only 255–322 windows per inner
+  split and 430–447 per outer training set.
 - Timing caveat: from about 14:20 three unrelated Python jobs used ~390% CPU and
   Low Power Mode was on, so CNN fit times after fold 1 are inflated (43% average
   CPU for the run). Item 10 uses the locked-test refit timings instead, measured
@@ -384,6 +384,40 @@ refit on all 961 development windows and scored once on 369 windows from the 7
 locked people. Pid 18 (vehicle only) is excluded from two-class metrics, leaving
 six people; 95% person-bootstrap intervals and paired A-minus-B differences are
 descriptive. The script refuses to run if results/final_test/ exists.
+
+## Locked-test results (run once, 2026-11-03)
+
+`final_test.py` ran once in 4 min 55 s on an otherwise idle laptop (battery, Low
+Power Mode off); checks PASS. Six two-class people; pid 18 vehicle recall reported
+separately. Intervals are 95% person-bootstrap, descriptive only.
+
+| Method | Test BA A / B | 95% interval A / B | Paired A − B (interval) | A > B |
+|---|---|---|---|---|
+| Tree V3 | .728 / .584 | .664–.791 / .532–.654 | .144 (.029–.254) | 5/6 |
+| kNN V3 | .622 / .523 | .581–.657 / .475–.559 | .099 (.041–.147) | 5/6 |
+| RBF-SVM V3 | .632 / .582 | .590–.672 / .542–.632 | .050 (−.020–.122) | 4/6 |
+| AdaBoost | .713 / .575 | .677–.758 / .531–.623 | .138 (.077–.204) | 6/6 |
+| Bagged kNN | .552 / .504 | .484–.611 / .470–.538 | .048 (−.010–.101) | 4/6 |
+| CNN | .753 / .527 | .709–.796 / .483–.590 | .227 (.157–.289) | 6/6 |
+| CNN + transfer | .759 / .458 | .724–.796 / .401–.531 | .301 (.236–.379) | 6/6 |
+| Majority / position stump | .500 / .582 | | | |
+
+V2 basic models on test: tree .726/.510, kNN .565/.520, SVM .625/.531.
+
+- The main finding holds on fresh people: with position, CNN, tree and AdaBoost
+  reach .71–.76; without it, the best is .584 (tree B3), level with the
+  position-only stump (.582). Every family is better with position; for five of
+  seven the paired interval excludes zero.
+- Test scores with position are higher than development (CNN .753 vs .687, tree
+  .728 vs .607). Six people cannot show whether this is luck or easier recordings;
+  development remains the main comparison and no model was re-chosen.
+- Refit on 961 windows: V3 trees and kNN .02–.03 s (mostly the MI filter), SVM .04 s, AdaBoost .3–.5 s,
+  CNN 0.7–5.9 s; predicting 369 test windows: tree <1 ms, kNN/SVM 1–9 ms,
+  AdaBoost 8 ms, bagged kNN 66–164 ms, CNN 35–44 ms on one thread.
+- CNN seed spread on test: .720–.756 (A), .527–.556 (B), transfer similar.
+- Without contention the full test, including CNN tuning on three development
+  partitions, took under five minutes, versus 3 h 50 min for the development CNN
+  run: the development CNN timings are dominated by the CPU contention noted above.
 
 ## Time, complexity and verification
 

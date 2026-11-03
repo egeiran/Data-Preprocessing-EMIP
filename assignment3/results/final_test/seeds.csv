@@ -1,0 +1,9 @@
+model,seed,equal_person_balanced_accuracy
+cnn__A_seq_with_position,43,0.7201437783445314
+cnn__A_seq_with_position,44,0.7560046908997807
+transfer__A_seq_with_position,43,0.76712061804495
+transfer__A_seq_with_position,44,0.7569297782774069
+cnn__B_seq_without_absolute_position,43,0.5558099916270941
+cnn__B_seq_without_absolute_position,44,0.5489451316868098
+transfer__B_seq_without_absolute_position,43,0.5467336042735599
+transfer__B_seq_without_absolute_position,44,0.5439958813688086

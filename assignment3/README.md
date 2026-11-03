@@ -111,3 +111,16 @@ Follows `deep_plan.json`: 500-step gaze sequences (ignored `cache/sequences.npz`
 a small 1D CNN tuned with nested person folds, and transfer from instruction vs
 answer screens. Needs PyTorch (CPU build; on Linux use the CPU wheel index to avoid
 CUDA downloads). The run takes several hours on a laptop CPU.
+
+## Locked test, figures and report
+
+```bash
+.venv/bin/python -B assignment3/src/final_test.py      # one time only; refuses to rerun
+.venv/bin/python -B assignment3/src/figures.py
+.venv/bin/python -B assignment3/src/export_report.py   # report.md -> report.html/.pdf
+```
+
+`final_test.py` follows `final_test_plan.json`: every method is tuned on the 23
+development people, refit on all development windows and scored once on the seven
+locked people (results in `results/final_test/`). The report export uses the A1
+stylesheet and headless Chrome.

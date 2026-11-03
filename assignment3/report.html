@@ -1,0 +1,682 @@
+<meta charset='utf-8'><style>
+body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;line-height:1.45;max-width:17cm;margin:2cm auto;color:#222}
+h1,h2{border-bottom:1px solid #ccc;padding-bottom:.2em} h2{page-break-before:auto} h1,h2,h3{break-after:avoid}
+table{border-collapse:collapse;margin:1em 0;font-size:9.5pt} th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}
+th{background:#f2f2f2} code{background:#f4f4f4;padding:1px 4px;font-size:9.5pt} pre{background:#f4f4f4;padding:8px;font-size:9pt}
+img{max-width:100%} em{color:#555} hr{border:0;border-top:1px solid #ccc}
+</style><h1>Assignment 3: Does gaze reveal what code is read, without gaze position?</h1>
+<p><strong>Eivind Systad Geiran and Trym Andreas Johnsen</strong> - IT3212 - EMIP eye-tracking dataset</p>
+<p>Code and every result file: https://github.com/egeiran/Data-Preprocessing-EMIP, folder
+<code>assignment3/</code> (<code>src/</code> for code, <code>results/</code> for evidence, <code>WORKLOG.md</code> for the full decision log).</p>
+<h2>1. Problem statement</h2>
+<p><strong>Real-world problem.</strong> Eye trackers are moving into consumer devices such as VR/AR headsets,
+webcam-based tracking in browsers and remote studies that share raw recordings. Gaze data is
+sensitive because it shows what a person looks at and reads. Researchers have proposed that
+applications receive only <em>derived</em> measures, such as fixations and dwell times within areas of
+interest, instead of raw gaze samples, which can identify the user (David-John et al., 2021).
+Some platforms do not share the user's eye input with apps at all (Apple, 2026). We test a
+simple, position-free version of this idea: keep derived signals such as pupil size, blinks,
+eye speed and gaze spread, but withhold absolute screen position. Is that enough to hide what
+someone is reading?</p>
+<p><strong>Machine-learning problem.</strong> Binary classification of two-second gaze windows: is a
+previously unseen person reading the <code>vehicle</code> or the <code>rectangle</code> program? Every model is
+trained twice:</p>
+<ul>
+<li><strong>A, with absolute position:</strong> the window features include the mean gaze position on screen.</li>
+<li><strong>B, without absolute position:</strong> the same features with the mean position removed.</li>
+</ul>
+<p>The difference between A and B shows how much of the information lies in <em>where</em> people
+look rather than <em>how</em> they look. Evaluation is on people the model has never seen, using
+balanced accuracy averaged with equal weight per person, so that people with long
+recordings do not dominate.</p>
+<p><strong>Why this dataset fits.</strong> The EMIP recordings come from a code-comprehension study. Each
+participant read both short programs, one after the other, and answered a multiple-choice
+question after each (20 started with <code>rectangle</code>, 13 with <code>vehicle</code>). Because every person
+contributes both classes, a model must separate the two programs <em>within</em> a person, and
+grouped validation by person is possible in every fold. Labels such as expertise or answer
+correctness would give one label per person, about 30 examples in total, and they are not
+part of the recordings we have.</p>
+<p><strong>Scope.</strong> This is a closed-set study with two known texts and 30 usable people. A weak
+result without position would not prove that content cannot leak through other signals,
+larger models or more data. The comparison of A and B was planned before any results
+existed; using it as the main question and adding the privacy motivation was decided after
+the first development results (recorded in <code>WORKLOG.md</code>).</p>
+<h2>2. Preprocessing</h2>
+<p><strong>Reused from Assignment 1.</strong> Invalid samples (tracker validity, off-screen or exactly-zero
+coordinates) are removed. Holes up to 150 ms are linearly interpolated, which covers blinks,
+and longer holes stay as gaps. Samples faster than 1,000 deg/s are removed as physically
+impossible. A (person, program) pair is kept only with at least 20 s of usable data. The
+cleaned 250 Hz samples are cached once, and Assignment 3 never rewrites them.</p>
+<p><strong>Windows.</strong> Each code screen is cut into non-overlapping two-second windows, starting at the
+raw screen message. A window never crosses a screen change, and a partial last window is
+dropped. Two quality rules are applied:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Requirement</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>&gt;=90% of the 2 s covered by samples, no hole over 150 ms</td>
+<td>a summary needs most of its window</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>additionally &gt;=80% directly measured, not interpolated</td>
+<td>interpolated blinks are straight lines, not gaze</td>
+</tr>
+</tbody>
+</table>
+<p>The 80% threshold was fixed from the development quality distribution before any V2 model
+was trained. It removes 31 of 992 development windows and no person.</p>
+<p><strong>Split.</strong> The seven test people from Assignment 1's participant split are locked: they were
+not used for any choice and were evaluated exactly once, at the end (section 8). The 23
+development people (961 windows, 546 vehicle and 415 rectangle) are divided into three outer
+folds by person. Inside each outer training set, three inner folds by person choose the
+hyperparameters, so an outer validation person never influences a model choice.</p>
+<p><strong>Reproducibility.</strong> The first comparison (V2, made on Linux) was reproduced byte-for-byte on
+a second machine and operating system (macOS), where all later stages were run. Only the binary bytes of the cached Parquet tables differ
+between machines, so the later stages check data by content fingerprints.</p>
+<h2>3. Feature extraction</h2>
+<p><strong>Window summaries (13 features).</strong> For each window:</p>
+<ul>
+<li>mean and SD of gaze x and y</li>
+<li>mean and SD of left and right pupil diameter</li>
+<li>median and 90th-percentile gaze speed, from consecutive samples at most 20 ms apart</li>
+<li>the mean of Assignment 1's trailing blink-rate and gap-fraction signals</li>
+<li>the fraction of interpolated samples</li>
+</ul>
+<p>These describe where the gaze is, how spread out it is, how fast it moves and how much
+signal is missing. They are cheap to compute and easy to interpret. Mean x and y are the
+only absolute-position features; spread, speed and pupil size do not move if the whole
+window is shifted on screen.</p>
+<p><strong>Fixation and saccade events (8 features).</strong> The summaries above say nothing about the
+structure of reading, so a velocity-threshold detector (I-VT; Salvucci and Goldberg, 2000)
+was added:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>speed</td>
+<td>centred over three samples</td>
+<td>less noise than consecutive-sample speed at 250 Hz</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>30 deg/s</td>
+<td>common default for screen-based trackers (Olsen, 2012)</td>
+</tr>
+<tr>
+<td>minimum fixation</td>
+<td>60 ms (15 samples)</td>
+<td>shorter fixations are treated as noise by the same source</td>
+</tr>
+<tr>
+<td>breaks</td>
+<td>interpolated sample or interval &gt;20 ms</td>
+<td>interpolation would invent smooth fixations</td>
+</tr>
+</tbody>
+</table>
+<p>From the events we compute fixation rate, mean fixation duration, fraction of time in
+fixation, saccade rate, mean saccade amplitude, and the share of saccades that are
+horizontal, leftward (regressions and line returns) and upward. All eight use coordinate
+differences only. To check this, every window was recomputed after shifting it 128 px right
+and 64 px up, and every event and feature was identical. The medians look like normal
+reading: 3.5 fixations per second, 266 ms per fixation and 92% of the time in fixation.</p>
+<p>The resulting feature groups are <strong>A3</strong> (21 features, with position) and <strong>B3</strong> (19 features,
+without). Thresholds were fixed in <code>feature_plan_v3.json</code> before any distribution or score
+was seen.</p>
+<h2>4. Feature selection and dimensionality reduction</h2>
+<p><strong>Hand-designed selection.</strong> The A/B design is itself a feature selection: B removes the two
+mean-position features to test a specific hypothesis. Identifiers, labels, stimulus names,
+timestamps, language and raw eye-position or gaze-vector columns are never given to a model.</p>
+<p><strong>No PCA.</strong> Assignment 1 used PCA on the sample-level data. Here we do not, for two reasons.
+First, the feature sets are small (11–21) and each feature has a meaning that we want to
+explain. Second, every principal component would mix mean position into the other features,
+which would destroy the A/B comparison that the whole study rests on.</p>
+<p><strong>Learned filter selection.</strong> For tree, kNN and SVM, a mutual-information filter
+(<code>SelectKBest</code>) is part of the training pipeline and keeps k = 5, 10 or all features. k is
+tuned jointly with the model's own hyperparameters on inner folds, so no-selection remains a
+possible choice. Mutual information was chosen because it is model-agnostic, captures
+non-linear dependence and is fitted only on training people. The ensembles do not get the
+filter: boosted trees select features at every split, and bagging already draws random
+feature subsets.</p>
+<p><strong>What it found.</strong> The inner folds chose k = all in 12 of 18 cases. When k = 5 or 10 won, the
+chosen features differed between folds. Mutual information therefore found no small, stable
+subset. Mean pupil size was often among the top five. A likely reason is screen luminance or
+task order rather than reading behaviour; this is a limitation, not a finding.</p>
+<p><img alt="Permutation importance" src="figures/permutation_importance.png" /></p>
+<p><em>Figure 1. Permutation importance on outer validation windows (drop in balanced accuracy
+when one feature is shuffled; mean of three folds; "–" means the feature is not in the
+group).</em> With position, the models rely mostly on mean x and y and on horizontal spread.
+Without position, the best models use horizontal spread (roughly line length) and the rates
+of fixations and saccades. B therefore still contains relative spatial structure. It is not
+purely "how" people look.</p>
+<h2>5. Three algorithms</h2>
+<p>The data are small and tabular: 961 development windows from 23 people, about 640 in each
+outer training set, and 19–21 features in different units (pixels, millimetres, degrees per
+second, fractions).</p>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Why it fits this problem</th>
+<th>Tuned values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree</td>
+<td>splits on single features like the position stump (one split on mean y), so it shows what more than one threshold adds; no scaling across units</td>
+<td>depth 2/4/6, minimum leaf 5/10 windows</td>
+</tr>
+<tr>
+<td>k-nearest neighbours</td>
+<td>no assumption about the shape of the classes; tests directly whether windows of the same program lie close together</td>
+<td>5/15/31 neighbours, uniform/distance votes</td>
+</tr>
+<tr>
+<td>RBF-kernel SVM</td>
+<td>non-linear boundary with explicit regularisation, which limits overfitting with few people</td>
+<td>C = 0.1/1/10, gamma = 0.01/0.1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why these values.</strong> Each family has six settings, crossed with the filter's three k values
+(section 4). Tree depth runs from 2, one step above the stump, to 6: up to 64 leaves, which
+at the larger minimum leaf of 10 windows is about all 640 training windows. Odd neighbour counts avoid tied
+votes; 5 is local and 31 (about 5% of the training windows) is smooth. C spans strong to weak
+regularisation on a log scale, and gamma 0.01/0.1 lies on either side of scikit-learn's default
+(1/number of features for standardised data, about 0.05 when all features are kept). The chosen values often sit at
+a grid edge (depth 6 and 5 neighbours in 4 of 6 folds each), so the best setting may lie
+outside the grid; the grids were declared before the comparison and not widened afterwards.</p>
+<p><strong>Why not the others.</strong> Regression and additive models give each feature a separate effect
+unless interactions are added by hand, while the tree and SVM can combine position with
+spread. Gaussian Naive Bayes
+assumes independent, normally distributed features within each class, but several fractions
+pile up at 0 or 1; at least half of the windows have no upward saccade. A neural network is
+covered in section 9.</p>
+<p>The three have different inductive biases: rules on single features, local similarity in
+the full space, and a global smooth margin. This makes their disagreement informative. kNN
+and SVM standardise features inside the training pipeline, so validation people never
+influence the scaling. Tree and SVM use balanced class weights because vehicle windows are
+57% of the data (the vehicle program takes longer to read); scikit-learn's kNN has no such
+option. Every family and feature group
+gets the same search budget and the same folds, so differences are paired by person.</p>
+<h2>6. Comparison of the three algorithms</h2>
+<p>Development results are averaged over the 23 people, using each person's prediction from
+the outer fold where that person was held out.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Balanced accuracy, A3 / B3</th>
+<th>Macro-F1, A3 / B3</th>
+<th>Outer-fold range, A3 / B3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree</td>
+<td>.607 / .509</td>
+<td>.567 / .465</td>
+<td>.573–.657 / .489–.530</td>
+</tr>
+<tr>
+<td>kNN</td>
+<td>.535 / .528</td>
+<td>.507 / .495</td>
+<td>.491–.614 / .476–.615</td>
+</tr>
+<tr>
+<td>RBF-SVM</td>
+<td>.607 / .558</td>
+<td>.581 / .528</td>
+<td>.526–.690 / .504–.595</td>
+</tr>
+<tr>
+<td>Majority class / position-only stump</td>
+<td>.500 / .581</td>
+<td>.352 / .453</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Position carries most of the signal.</strong> A depth-one tree that only sees mean y reaches .581,
+about as high as kNN and SVM with every feature. Without absolute position, tree and kNN fall
+to near chance. SVM keeps the most (.558), but one of its outer folds is at .504.</p>
+<p><strong>Similar accuracy, different errors.</strong> The stump predicts rectangle for 96% of rectangle
+windows but only 17% of vehicle windows, because it learned a single y-threshold. Tree and
+SVM with A3 have more even class recalls (.56/.63 and .61/.59). kNN favours the majority
+class (vehicle recall .69, rectangle .41).</p>
+<p><strong>Why kNN is weakest with position.</strong> One likely reason is that it is the only one of the three
+without class weights, so it under-predicts rectangle, which balanced accuracy penalises. This
+is not the whole story: it has the same bias without position, where it matches the tree. Fewer
+features did not help either; on the inner folds, keeping five beat keeping all 21 in only one
+of three folds. Without position, the three are within .05 of each
+other.</p>
+<p><strong>Uncertainty.</strong> Single people range from .44 to .80 (tree, A3) and from .34 to .89 (SVM,
+A3), and the person SD is .09–.14. With three folds and 23 people, differences of a few
+points between models are not reliable. The first set of features (V2, 13 features) gave
+.616/.527 (tree), .584/.498 (kNN) and .582/.534 (SVM). The event features and the filter did
+not give a consistent gain.</p>
+<h2>7. Boosting and bagging</h2>
+<p>Following the assignment, boosting and bagging use different base algorithms: decision
+trees for boosting and kNN for bagging.</p>
+<p><strong>AdaBoost with shallow trees (boosting).</strong> The steps:</p>
+<ol>
+<li>Start with weights that give both classes equal total weight.</li>
+<li>Fit a shallow tree (depth 1–3) to the weighted windows.</li>
+<li>Compute its weighted error <em>e</em> and its vote weight, learning-rate x log((1-e)/e).</li>
+<li>Increase the weight of the windows it got wrong, then normalise.</li>
+<li>Repeat for 200 rounds. The prediction is the weighted vote of all trees.</li>
+</ol>
+<p>Boosting suits weak, high-bias learners: one shallow tree barely beats chance, but a sequence
+of trees that focuses on earlier mistakes can model interactions. Depth (1/2/3) and learning
+rate (0.1/1) are tuned.</p>
+<p><strong>Bagged kNN (bagging).</strong> The steps:</p>
+<ol>
+<li>Draw a bootstrap sample of the training windows, with replacement.</li>
+<li>Draw a random subset of the features (50%, 75% or 100%).</li>
+<li>Fit a scaler and a kNN classifier on that sample and subset.</li>
+<li>Repeat for 50 members. The prediction is the majority vote.</li>
+</ol>
+<p>Bagging reduces variance by averaging models fitted to perturbed data. kNN changes little
+under row resampling alone, so the random feature subsets are what make the members differ.
+k (15/31) and the feature share are tuned.</p>
+<p><strong>A correction before any result.</strong> The plan first gave the base tree balanced class
+weights. That crashed AdaBoost on its first fit: the tree optimised balanced weights while
+AdaBoost scored it under uniform weights, so its error could exceed 0.5. The balance was
+moved to AdaBoost's starting weights. This change was made and recorded before any ensemble
+score existed.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Balanced accuracy, A3 / B3</th>
+<th>Outer-fold range, A3 / B3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AdaBoost (trees)</td>
+<td><strong>.659</strong> / .561</td>
+<td>.648–.672 / .527–.588</td>
+</tr>
+<tr>
+<td>Bagged kNN</td>
+<td>.558 / .518</td>
+<td>.486–.612 / .487–.553</td>
+</tr>
+</tbody>
+</table>
+<p>AdaBoost with position is the best development model and also the most stable over folds.
+It is .05 above the best single model and .08 above the stump. Bagging helps kNN with
+position (.535 to .558) but not without it. Neither ensemble lifts the position-free group
+clearly above .56: ensembles extract more from position, not from gaze dynamics.</p>
+<h2>8. Basic vs boosting vs bagging vs transfer</h2>
+<p><strong>What "transfer" means here.</strong> The assignment does not define it, so we interpret it as
+transfer learning. The CNN from section 9 is first trained on a
+<em>source task</em> whose label is unrelated to the program shown: is the participant looking at
+an instruction screen or at a multiple-choice answer screen? These screens come from the same
+recordings, tracker and people, but are never code. The convolution layers are then reused for
+vehicle/rectangle in one of two modes, chosen on inner folds:</p>
+<ul>
+<li><strong>freeze:</strong> the pretrained layers are fixed and only a new output layer is trained;</li>
+<li><strong>fine-tune:</strong> all layers continue training at a lower learning rate (0.0003).</li>
+</ul>
+<p>Pretraining uses only the training people of the current split (255–322 source windows per
+inner split, 430–447 per outer split), so no validation or test person leaks in.</p>
+<p><strong>Development comparison</strong> (23 people, outer folds; best single model per group shown as
+"basic"):</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>With position (A)</th>
+<th>Without position (B)</th>
+<th>A − B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Basic: best of tree, kNN, SVM</td>
+<td>.607 (tree)</td>
+<td>.558 (SVM)</td>
+<td>.049</td>
+</tr>
+<tr>
+<td>Boosting: AdaBoost (trees)</td>
+<td>.659</td>
+<td>.561</td>
+<td>.098</td>
+</tr>
+<tr>
+<td>Bagging: bagged kNN</td>
+<td>.558</td>
+<td>.518</td>
+<td>.040</td>
+</tr>
+<tr>
+<td>CNN from scratch</td>
+<td><strong>.687</strong></td>
+<td>.483</td>
+<td>.204</td>
+</tr>
+<tr>
+<td>CNN + transfer</td>
+<td>.684</td>
+<td>.499</td>
+<td>.185</td>
+</tr>
+<tr>
+<td>Controls: majority / position-only stump</td>
+<td>.500 / .581</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Locked test.</strong> Every method was then tuned on all 23 development people, refitted on all 961
+development windows and scored once on the seven locked people. One of them (pid 18) has only
+vehicle windows, so the two-class metrics use six people; the intervals resample those six
+people 10,000 times and are descriptive only.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>With position (A)</th>
+<th>Without position (B)</th>
+<th>A − B, paired (95% interval)</th>
+<th>People with A &gt; B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree</td>
+<td>.728</td>
+<td><strong>.584</strong></td>
+<td>.144 (.029 to .254)</td>
+<td>5 of 6</td>
+</tr>
+<tr>
+<td>kNN</td>
+<td>.622</td>
+<td>.523</td>
+<td>.099 (.041 to .147)</td>
+<td>5 of 6</td>
+</tr>
+<tr>
+<td>RBF-SVM</td>
+<td>.632</td>
+<td>.582</td>
+<td>.050 (−.020 to .122)</td>
+<td>4 of 6</td>
+</tr>
+<tr>
+<td>AdaBoost (trees)</td>
+<td>.713</td>
+<td>.575</td>
+<td>.138 (.077 to .204)</td>
+<td>6 of 6</td>
+</tr>
+<tr>
+<td>Bagged kNN</td>
+<td>.552</td>
+<td>.504</td>
+<td>.048 (−.010 to .101)</td>
+<td>4 of 6</td>
+</tr>
+<tr>
+<td>CNN from scratch</td>
+<td>.753</td>
+<td>.527</td>
+<td>.227 (.157 to .289)</td>
+<td>6 of 6</td>
+</tr>
+<tr>
+<td>CNN + transfer</td>
+<td><strong>.759</strong></td>
+<td>.458</td>
+<td>.301 (.236 to .379)</td>
+<td>6 of 6</td>
+</tr>
+<tr>
+<td>Majority / position-only stump</td>
+<td>.500 / .582</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Development and test results with and without absolute position" src="figures/ab_comparison.png" /></p>
+<p><em>Figure 2. Balanced accuracy with (blue) and without (orange) absolute position. Left: 23
+development people, outer folds. Right: locked test, six two-class people, with 95%
+person-bootstrap intervals. Vertical lines: majority class and the position-only stump.</em></p>
+<p>The test confirms the development pattern on fresh people. With position, the CNN, the tree and
+AdaBoost reach .71–.76. Without position, the best method (tree, .584) only ties the stump that
+sees nothing but mean y (.582). Every family is better with position, and for five of the seven
+the paired interval excludes zero. Scores with position are higher on test than on development
+(CNN .753 vs .687, tree .728 vs .607). Six people cannot tell whether that is luck or easier
+recordings, so development remains the main comparison, and no model was re-chosen after the
+test.</p>
+<p><strong>Explanation.</strong> Every family gains from absolute position. The gap is about .05 for the basic
+models and bagging, .10 for boosting and .20 for the CNN. Without position, the best methods
+reach about .56, none reaches the position-only stump (.581), and the CNN falls to chance.
+AdaBoost profits because sequential shallow trees combine the position features with spread
+and pupil features. The CNN profits most because it sees the whole two-second trajectory on
+the screen rather than one mean point. Bagging gives kNN little, because kNN changes little when
+training rows are resampled (section 7), and the bagged model leans even more toward vehicle:
+it finds only about 30% of rectangle windows, against 40% for single kNN. A likely reason is
+that it chose 31 neighbours with equal votes in five of six folds, where single kNN mostly
+chose 5; larger neighbourhoods follow the 57% vehicle share more closely. Transfer gives
+nothing in either group. The source task is small, and telling instruction from answer
+screens is probably also mostly a layout task, so its filters likely add little that the
+target task cannot learn directly.</p>
+<h2>9. Convolutional neural network</h2>
+<p><strong>Input.</strong> The assignment allows the preprocessed data to be used directly, so the CNN sees
+each two-second window as a sequence of 500 time steps (4 ms each) with six channels: gaze x,
+gaze y, left and right pupil, a "measured" mask and an "interpolated" flag. A step without a
+sample is zero with mask 0, so holes are visible to the network and never squeezed out. For A,
+x and y are divided by the screen size; for B, each window's mean x and y is subtracted first,
+which removes absolute location but keeps relative movement, mirroring feature group B. Pupil
+channels are standardised with statistics from the training people only.</p>
+<p><strong>Architecture.</strong> Three blocks of 1D convolution, batch normalisation and ReLU, with max-pooling
+after the first two (f, 2f and 2f channels); then global average pooling, dropout 0.3 and a
+linear layer to two classes. This is 8,466 to 95,650 parameters depending on the setting, small
+enough for about 640 training windows. The loss is cross-entropy with balanced class weights.</p>
+<p><strong>Tuned hyperparameters and why.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Hyperparameter</th>
+<th>Values</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>filters f</td>
+<td>16, 32</td>
+<td>capacity; tests whether more feature maps help with this little data</td>
+</tr>
+<tr>
+<td>kernel size</td>
+<td>5, 9, 15</td>
+<td>the first layer spans 20, 36 or 60 ms, the range of saccade durations; the last block sees 128, 240 or 408 ms, about one fixation and saccade</td>
+</tr>
+</tbody>
+</table>
+<p>Adam (learning rate 0.001), batch size 32, at most 60 epochs and dropout are standard values
+and fixed. Training stops when inner-validation balanced accuracy has not improved for 10
+epochs, and the outer model is refitted for the median best epoch of the chosen setting. The
+search uses the same nested person folds as all other models: six settings x three inner
+folds x three outer folds x two groups. Inner scores are somewhat optimistic because the same
+inner people also stop training, but outer validation people are never used. Each refit was
+repeated with three seeds; seed changes move fold scores by about .02, less than the
+differences between folds.</p>
+<p><strong>Results.</strong> With absolute position, the CNN is the best development model (.687; folds
+.620–.757). Without it, the CNN is near chance (.483; folds .404–.550). Centred sequences
+carry spread, speed, pupil and fixation structure, but the network finds no reliable
+difference between the programs in them, while SVM and AdaBoost reach .56 from summary
+features of the same windows. About 640 training windows were enough for the CNN to learn the strong
+position signal, but are probably too few to learn such a weak one from raw sequences.</p>
+<h2>10. Complexity, computation time and performance</h2>
+<p>Sizes and times below come from the final models on an otherwise idle laptop (Apple M4):
+refit on all 961 development windows (median of five warm repetitions; one timed run for the
+CNNs, on four threads) and prediction of all 369 test windows, about 12 minutes of gaze (five
+warm repetitions on one CPU thread). Balanced accuracy is development / test.</p>
+<table>
+<thead>
+<tr>
+<th>Model (A / B)</th>
+<th>Size of the fitted model</th>
+<th>Refit (s)</th>
+<th>Predict 369 windows (ms)</th>
+<th>BA with position</th>
+<th>BA without position</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree</td>
+<td>39 / 57 nodes, depth 6</td>
+<td>.03 / .03</td>
+<td>0.1 / 0.1</td>
+<td>.607 / .728</td>
+<td>.509 / .584</td>
+</tr>
+<tr>
+<td>kNN</td>
+<td>stores 961 windows</td>
+<td>.03 / .02</td>
+<td>1.8 / 1.0</td>
+<td>.535 / .622</td>
+<td>.528 / .523</td>
+</tr>
+<tr>
+<td>RBF-SVM</td>
+<td>737 / 836 support vectors</td>
+<td>.04 / .04</td>
+<td>7.6 / 9.2</td>
+<td>.607 / .632</td>
+<td>.558 / .582</td>
+</tr>
+<tr>
+<td>AdaBoost</td>
+<td>200 trees, 2,622 / 1,088 nodes</td>
+<td>.47 / .32</td>
+<td>8.3 / 7.6</td>
+<td>.659 / .713</td>
+<td>.561 / .575</td>
+</tr>
+<tr>
+<td>Bagged kNN</td>
+<td>50 x 961 stored windows</td>
+<td>.04 / .03</td>
+<td>164 / 66</td>
+<td>.558 / .552</td>
+<td>.518 / .504</td>
+</tr>
+<tr>
+<td>CNN</td>
+<td>24,786 / 8,466 weights</td>
+<td>5.9 / 2.2</td>
+<td>43 / 37</td>
+<td>.687 / .753</td>
+<td>.483 / .527</td>
+</tr>
+<tr>
+<td>CNN + transfer</td>
+<td>24,786 / 8,466 weights</td>
+<td>3.5 / 0.7 + pretraining</td>
+<td>44 / 35</td>
+<td>.684 / .759</td>
+<td>.499 / .458</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Computation time against performance" src="figures/time_vs_performance.png" /></p>
+<p><em>Figure 3. Development balanced accuracy against refit time (left) and prediction time for the
+369 test windows (right), log scale. Lines join each method's two feature groups.</em></p>
+<p><strong>Complexity and time.</strong> Time follows model size. A tree predicts by following one path of at
+most six splits, so 369 windows take 0.1 ms. kNN and the SVM compare every window with stored
+windows or support vectors (1–9 ms). AdaBoost evaluates 200 trees (8 ms). Bagged kNN runs 50
+neighbour searches per window, the slowest prediction of the feature models (66–164 ms) for little
+or no gain in accuracy. The CNN costs the most to train, seconds against well under a second for the
+others, plus a hyperparameter search of one to two minutes per feature group. Search time also
+depends heavily on the machine: on the shared laptop during development, with other jobs and a
+power-saving mode competing for the CPU, the nested CNN search took almost four hours. The final
+tuning of every method, including the CNNs, took under five minutes on the idle machine.</p>
+<p><strong>In terms of the machine-learning problem.</strong> With absolute position, more capacity buys
+accuracy: from a one-split stump (.58) to a 39-node tree (.61 / .73), AdaBoost (.66 / .71) and
+the CNN (.69 / .75), at a cost that grows from microseconds to seconds. Without position, extra
+capacity buys little. On development, a 0.1 ms tree and an 8 ms ensemble reach .51–.56, below
+the position stump, and the CNN falls to chance (.48); on test, the tree (.58) is level with the
+ensemble and above the CNN (.53). The input keeps only a weak signal, and the CNN, which must
+learn its own summaries from 640–960 windows, probably has too little data to find it
+(section 9).</p>
+<p><strong>In terms of the real-world problem.</strong> Computation is no barrier for anyone holding gaze data.
+Every model classifies 12 minutes of gaze in under 0.2 s on one CPU thread, and even the CNN
+trains in seconds, so content inference from shared recordings is cheap. What matters is which
+signals are shared. With raw coordinates, a 39-node tree identifies the program for new people
+well above chance, and a small CNN does better still. With coordinates withheld, every method
+dropped to or below the level of a single threshold on mean position, and the CNN to chance. In this
+setting, withholding absolute position removed most of the content signal. But the derived signals
+that remain (horizontal spread, pupil size) still gave .56–.58 for several models, so they are not
+information-free. Pupil size is also known to reveal cognitive load and emotional arousal
+(David-John et al., 2021), and with more texts, people or data a stronger model might find more.</p>
+<h2>Conclusion</h2>
+<p>On new people, eye-tracking windows reveal which of two programs is being read, but almost all of
+that information lies in <em>where</em> people look. With absolute gaze position, a CNN reaches .69 on
+development and .75 on the locked test, and simple models reach .61–.73. Without it, the best
+methods reach about .58, no better than a single rule on mean position, and the CNN falls to
+chance. Event features, feature selection, ensembles and transfer learning did not change this.
+For gaze-data privacy, withholding raw coordinates removed most of the content signal in this
+closed two-program setting, though the derived signals are not entirely free of it.</p>
+<h2>Limitations</h2>
+<ul>
+<li><strong>Two known texts, 30 people.</strong> This is a closed-set study. A weak result without position
+  does not prove that no information leaks with more texts, more data or other models.</li>
+<li><strong>Layout and luminance.</strong> The two programs differ in length and shape on screen. Position and
+  pupil features can reflect layout and screen brightness rather than reading.</li>
+<li><strong>Task order.</strong> 20 of 33 people read <code>rectangle</code> first, so time-related drift (fatigue, pupil
+  change) is slightly confounded with the label.</li>
+<li><strong>B is not purely dynamic.</strong> It still contains relative spatial structure such as horizontal
+  spread, which tracks line length.</li>
+<li><strong>Reused development people.</strong> The same 23 people informed the V1, V2 and V3 choices. Nested
+  folds limit the optimism from tuning, but only the locked test people are truly fresh.</li>
+<li><strong>Six test people.</strong> The test intervals are wide, and pid 18 has only one class.</li>
+<li><strong>Transfer interpretation.</strong> Our reading of "transfer" may differ from what the course intends.</li>
+</ul>
+<h2>References</h2>
+<ol>
+<li>EMIP Workshop. <em>Distributed Collection of Eye Movement Data in Programming: Dataset</em>.
+   https://emipws.org/dataset/ (accessed 14 September 2026)</li>
+<li>David-John, B., Hosfelt, D., Butler, K. and Jain, E. (2021). A privacy-preserving approach
+   to streaming eye-tracking data. <em>IEEE Transactions on Visualization and Computer Graphics</em>,
+   27(5), 2555–2565. https://doi.org/10.1109/TVCG.2021.3067787</li>
+<li>Apple (2026). <em>Eyes, Hands &amp; Privacy</em>. https://www.apple.com/legal/privacy/data/en/eyes-hands/
+   (updated 14 September 2026, accessed 3 November 2026)</li>
+<li>Salvucci, D. D. and Goldberg, J. H. (2000). Identifying fixations and saccades in
+   eye-tracking protocols. <em>Proceedings of the 2000 Symposium on Eye Tracking Research &amp;
+   Applications (ETRA)</em>, 71–78.</li>
+<li>Olsen, A. (2012). <em>The Tobii I-VT Fixation Filter: Algorithm description</em>. Tobii Technology.</li>
+</ol>
+<h2>AI declaration</h2>
+<p>AI assistants, including Claude (Anthropic), were used for writing and checking code, for the
+figure and export scripts, and for drafting and editing the report text. Every method choice
+was fixed in a plan file before results existed, every number in this report is read from the
+committed result files, and the authors checked the choices, numbers and interpretations.</p>

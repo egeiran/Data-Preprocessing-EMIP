@@ -1,0 +1,43 @@
+{
+  "channels": [
+    "x",
+    "y",
+    "pupil_left",
+    "pupil_right",
+    "measured_mask",
+    "interpolated_flag"
+  ],
+  "steps": 500,
+  "code_windows": {
+    "development": 961,
+    "locked_test": 369
+  },
+  "code_grid_collisions": 180,
+  "code_present_step_fraction_median": 1.0,
+  "source_windows": 658,
+  "source_rejected_windows": 753,
+  "source_grid_collisions": 104,
+  "source_people": 23,
+  "source_class_windows": {
+    "instruction": 139,
+    "answer_screen": 519
+  },
+  "source_stimulus_windows": {
+    "mupliple_choice_rectangle.jpg": 269,
+    "mupliple_choice_vehicle.jpg": 250,
+    "instruction_comprehension.jpg": 84,
+    "instruction_calibration.jpg": 55
+  },
+  "code_sha256": "ffb09e54276a2ccf8fc7bebc7681c01f2189c28f23340f0195ef83e3f8955916",
+  "source_sha256": "870f2e4020b086be5472d8b854067def780c4d6167b9814fa4916a25bb715e4a",
+  "builder_sha256": "3b1951f3894cf71bf7b8908358a227cbdfa38f7419db08a17088e923c77e371a",
+  "plan_sha256": "a99582dc41489a3ec7a4f68ab8f8f0f111166256c2177c8b13716a3672d74818",
+  "checks": [
+    "V2 keys against committed evidence",
+    "every code sample on its own grid step or counted",
+    "every source sample on its own grid step or counted",
+    "source screens match cache stimulus",
+    "source windows pass V1 and V2 quality rules",
+    "no locked-test person in the source set"
+  ]
+}

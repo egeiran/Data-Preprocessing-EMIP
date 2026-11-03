@@ -1,0 +1,7 @@
+{
+  "plan_sha256": "2abdffd2277877eccd532b152fe81cd921e2f5d0b953c61ee9af7d1b85a62b7b",
+  "source_sha256": "e3ac7cffafcc4eb1b6c6b980f770273361cc36fda7e4372dccd6f916dc9704b9",
+  "v2_content_sha256": "74851c05c90b7309f9cba69464db92de371ca8ddbc5ce3c8356a53a1383431b0",
+  "v3_content_sha256": "a94ca5e28f7e15bc3c52722b43e7d46bf911afccd8d6fe1c32fde1e5fd8116b2",
+  "fingerprint": "sha256 of KEY-sorted CSV text with %.17g floats; portable across machines"
+}

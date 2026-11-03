@@ -1,0 +1,50 @@
+{
+  "version": "v3_models",
+  "decision_basis": "declared after V2 scores and V3 feature distributions, before any V3 model score",
+  "seed": 42,
+  "dataset": "assignment3/cache/windows_v3.parquet",
+  "dataset_content_sha256": "a94ca5e28f7e15bc3c52722b43e7d46bf911afccd8d6fe1c32fde1e5fd8116b2",
+  "primary_metric": "mean two-class balanced accuracy with equal weight per validation participant",
+  "secondary_metrics": ["equal-participant two-class macro-F1", "pooled window metrics", "confusion counts by participant and class"],
+  "single_class_policy": "as V2: retain windows and predictions; two-class metrics are null and excluded from their summaries",
+  "outer_folds": "assignment3/results/first_validation/folds.json",
+  "inner_group_folds": 3,
+  "selection": "pooled inner out-of-fold equal-participant primary metric; first configuration wins exact ties",
+  "feature_groups": ["A3_with_position", "B3_without_absolute_position"],
+  "feature_selection": {
+    "applies_to": ["tree", "knn", "svm_rbf"],
+    "method": "SelectKBest(mutual_info_classif) inside each training pipeline, tuned jointly with the model grid",
+    "k": [5, 10, "all"],
+    "mutual_info": {"n_neighbors": 3, "random_state": 42},
+    "position": "after StandardScaler for kNN/SVM; first step for the tree. Mutual information is scale-invariant, so the order does not change the chosen features",
+    "reporting": "selected features per outer fold; descriptive permutation importance on outer validation windows"
+  },
+  "grids": {
+    "tree": {"max_depth": [2, 4, 6], "min_samples_leaf": [5, 10]},
+    "knn": {"n_neighbors": [5, 15, 31], "weights": ["uniform", "distance"]},
+    "svm_rbf": {"C": [0.1, 1.0, 10.0], "gamma": [0.01, 0.1]},
+    "adaboost": {"estimator__max_depth": [1, 2, 3], "learning_rate": [0.1, 1.0]},
+    "bagged_knn": {"estimator__kneighborsclassifier__n_neighbors": [15, 31], "max_features": [0.5, 0.75, 1.0]}
+  },
+  "fixed": {
+    "tree_and_svm": "class_weight balanced; kNN Euclidean with StandardScaler inside the pipeline, as V2",
+    "adaboost": "SAMME, 200 rounds, class-balanced initial window weights, unweighted base DecisionTreeClassifier; all features (amended, see amendments)",
+    "bagged_knn": "50 members; bootstrap rows; each member draws max_features without replacement; StandardScaler + Euclidean uniform kNN inside every member",
+    "permutation_importance": "10 repeats, pooled balanced accuracy, outer validation windows, seed 42"
+  },
+  "controls": ["most_frequent_dummy", "position_only_depth_one_tree"],
+  "timing": {"batches": 5, "min_seconds_per_batch": 0.02, "max_calls_per_batch": 1000, "warmup": true},
+  "amendments": [
+    "2026-11-02, before any ensemble score: the declared base-tree class_weight=balanced crashed AdaBoost on its first inner fit ('worse than random'), because the tree optimises balanced weights while AdaBoost scores it under uniform weights. Balance moved to AdaBoost's initial window weights; grid, rounds and all other choices unchanged."
+  ],
+  "test_evaluation": "forbidden until final_test_plan.json is committed",
+  "search_budget": "18 settings (6 x 3 k) for each basic family and 6 for each ensemble, per feature group; 3 inner x 3 outer folds; no adaptive expansion",
+  "justification": {
+    "selection_method": "mutual information is a model-agnostic filter that captures non-linear dependence, is cheap, and is fitted on training people only; k = all keeps no-selection as an option",
+    "selection_scope": "the ensembles do not get the filter: boosted trees choose features at every split, and bagging already samples feature subsets",
+    "boosting": "AdaBoost reduces the bias of weak, shallow trees by reweighting windows the previous trees got wrong; depth and learning rate control how weak each tree is and how fast weights change",
+    "bagging": "bagging reduces variance by averaging members fitted on resampled windows; kNN barely changes under row bootstrap alone, so feature subsampling (random subspaces) is what decorrelates the members",
+    "different_bases": "the assignment asks for different algorithms in boosting and bagging: trees for boosting, kNN for bagging",
+    "same_folds": "all variants reuse the V2 outer folds and identical inner partitions, so results are paired by person"
+  }
+}

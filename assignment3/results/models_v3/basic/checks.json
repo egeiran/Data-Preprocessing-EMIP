@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "development_windows": 961,
+  "people": 23,
+  "predictions": 7688,
+  "search_candidates": 324,
+  "checks": [
+    "V3 content fingerprint",
+    "disjoint nested person folds",
+    "no test predictions",
+    "explicit input allowlists",
+    "B3 has no absolute position",
+    "training-only scaler and selector",
+    "unique OOF predictions",
+    "independent sklearn recomputation"
+  ]
+}

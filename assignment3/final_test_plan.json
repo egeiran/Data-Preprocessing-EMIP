@@ -1,0 +1,23 @@
+{
+  "version": "final_test",
+  "decision_basis": "declared after all development results (V2, V3 basic, ensembles, CNN, transfer) and before any locked-test prediction; the test is run once",
+  "seed": 42,
+  "locked_test_participants": ["2", "6", "8", "18", "25", "28", "37"],
+  "single_class_people": {"18": "vehicle only: observed-class recall only, excluded from two-class metrics"},
+  "development_people": "all 23 development participants",
+  "selection": "3-fold grouped CV on all development people (compare.inner_partitions over the 23 people, seed 42), with each method's own declared grid and rule; refit on all 961 development windows",
+  "methods": {
+    "v2_basic": {"plan": "comparison_plan.json", "families": ["tree", "knn", "svm_rbf"], "feature_groups": ["A_with_position", "B_without_absolute_position"]},
+    "v3_basic_with_selection": {"plan": "model_plan_v3.json", "families": ["tree", "knn", "svm_rbf"], "feature_groups": ["A3_with_position", "B3_without_absolute_position"]},
+    "v3_ensembles": {"plan": "model_plan_v3.json", "families": ["adaboost", "bagged_knn"], "feature_groups": ["A3_with_position", "B3_without_absolute_position"]},
+    "deep": {"plan": "deep_plan.json", "families": ["cnn", "transfer"], "feature_groups": ["A_seq_with_position", "B_seq_without_absolute_position"],
+             "details": "scratch CNN tuned with early stopping on the three development partitions, refit for the median best epoch; transfer pretrained per partition on that partition's training people, final pretraining on all development people's instruction/answer windows; seed 42 primary, 43-44 spread"},
+    "controls": ["most_frequent_dummy", "position_only_depth_one_tree"]
+  },
+  "primary_metric": "mean two-class balanced accuracy with equal weight per locked-test participant (6 eligible people)",
+  "secondary_metrics": ["equal-participant macro-F1", "pooled window metrics", "per-person confusion counts", "pid 18 observed-class recall"],
+  "uncertainty": "percentile 95% intervals from 10,000 bootstrap resamples of the eligible test people (seed 42), for each method and for the paired A-minus-B difference within each family; descriptive only with six people",
+  "timing": "full-development refit wall time; prediction of the locked-test windows in 5 warm batches (single thread for the CNN, as in development)",
+  "guard": "final_test.py refuses to run if results/final_test/ exists; no rerun after inspecting results",
+  "interpretation_rule": "development (outer-fold) and test results are reported side by side; no model is re-chosen on test scores"
+}

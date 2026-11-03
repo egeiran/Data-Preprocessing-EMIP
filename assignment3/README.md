@@ -1,4 +1,8 @@
-# Assignment 3: known code-task identification from eye tracking
+# Assignment 3: which code is read, with and without gaze position
+
+Main question: can eye tracking tell which of two code snippets an unseen person
+reads, and does it still work when absolute gaze position is removed, a simple
+version of proposed privacy safeguards? See *Problem and scope* in the worklog.
 
 Start with [WORKLOG.md](WORKLOG.md): agreed scope, decisions, evidence, limitations
 and handover. [Official assignment](assignment.pdf). A1 files stay at the root.
@@ -72,3 +76,51 @@ Current person-average balanced accuracy: tree A/B .616/.527, kNN A/B .584/.498,
 SVM A/B .582/.534, dummy .500 and position-only stump .581. Read WORKLOG before
 interpreting these small development results. Reruns overwrite the same version's
 output directory; create a new version before changing analysis choices.
+
+## V3 event features
+
+```bash
+.venv/bin/python -B assignment3/src/fixations.py
+```
+
+Adds eight I-VT fixation/saccade features to the same V2 windows, with thresholds
+fixed in `feature_plan_v3.json`. Writes ignored `cache/windows_v3.parquet` and
+evidence in `results/features_v3/`. Parquet bytes differ between machines, so V3
+code checks V2 by keys and records portable content fingerprints (see WORKLOG).
+`uv run python -B …` works the same as `.venv/bin/python -B …`.
+
+## V3 models and ensembles
+
+```bash
+.venv/bin/python -B assignment3/src/models.py basic
+.venv/bin/python -B assignment3/src/models.py ensembles
+```
+
+Follows `model_plan_v3.json`: tree/kNN/RBF-SVM tuned jointly with a
+mutual-information filter, then AdaBoost (trees) and bagged kNN, all on A3/B3 with
+the V2 folds. Each part writes its own directory under `results/models_v3/`.
+
+## Sequence CNN and transfer
+
+```bash
+.venv/bin/python -B assignment3/src/sequences.py
+.venv/bin/python -B assignment3/src/cnn.py
+```
+
+Follows `deep_plan.json`: 500-step gaze sequences (ignored `cache/sequences.npz`),
+a small 1D CNN tuned with nested person folds, and transfer from instruction vs
+answer screens. Needs PyTorch (CPU build; on Linux use the CPU wheel index to avoid
+CUDA downloads). The run takes several hours on a laptop CPU.
+
+## Locked test, figures and report
+
+```bash
+.venv/bin/python -B assignment3/src/final_test.py      # one time only; refuses to rerun
+.venv/bin/python -B assignment3/src/figures.py
+.venv/bin/python -B assignment3/src/export_report.py   # report.md -> report.html/.pdf
+```
+
+`final_test.py` follows `final_test_plan.json`: every method is tuned on the 23
+development people, refit on all development windows and scored once on the seven
+locked people (results in `results/final_test/`). The report export uses the A1
+stylesheet and headless Chrome.

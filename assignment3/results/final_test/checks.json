@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "test_windows": 369,
+  "test_people": 7,
+  "eligible_two_class_people": 6,
+  "models": 22,
+  "checks": [
+    "V3 content fingerprint and sequence digest",
+    "selection on development people only",
+    "pretraining on development people only",
+    "test keys match between tables",
+    "pid 18 excluded from two-class metrics",
+    "single run guard"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "windows": 1330,
+  "translation_checked_windows": 1330,
+  "checks": [
+    "still gaze",
+    "5 degree step",
+    "direction shares",
+    "hole ends fixation",
+    "interpolated sample ends fixation",
+    "minimum fixation duration",
+    "empty-window fill",
+    "V2 keys match committed quality evidence",
+    "V2 counts and locked people match selection.json",
+    "sample counts match V2 windows",
+    "every real window unchanged by a screen shift",
+    "finite V3 features",
+    "B3 has no absolute position"
+  ]
+}

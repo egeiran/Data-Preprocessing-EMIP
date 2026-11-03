@@ -14,12 +14,101 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
   transfer; one-time locked-test evaluation; figures and report.md. Each step's
   plan was committed before its scores; amendments are dated in the plan files.
 - Start with report.md, then the summary.csv in each results/ subdirectory.
+- PR #3 merged as `38369f2`. Follow-up on `assignment3-review-fixes` makes small
+  report corrections; see the dated review section below. The local REVIEW.md
+  remains an unchanged review record, outside the follow-up commits.
 - Open: (1) check A3 submission rules on Blackboard. A1 had a 3,000-word limit
-  (captions counted, code/references not); report.md is ~3,990 words without
-  references, so trim if the same limit applies. (2) Optionally confirm with staff
+  (captions counted, code/references not); check the current report length and
+  trim only if the same limit applies. (2) Optionally confirm with staff
   that "transfer" in point 8 means transfer learning; report.md states our reading.
   (3) Trym should confirm the reframing and the AI declaration. (4) Personal
   reflections or contribution statements, if required, are for each author.
+- Unresolved: V3 feature fingerprint portability. The exact check is preserved;
+  comparison with Eivind's original macOS table is needed before changing it.
+
+## Follow-up review (Trym, 2026-11-03)
+
+Scope: preserve Eivind's report structure, tables, figures and experimental work.
+No model, feature definition, search, seed, expected fingerprint, tolerance or
+saved result is changed. No model training or new test predictions were run.
+
+Report corrections:
+
+- Describe A/B as predictive performance of separately tuned pipelines, without
+  claiming an information decomposition, causal effect or privacy protection.
+  B is compared with the .500 dummy; the y-stump remains a positional benchmark.
+  Several summary-feature B models retain .56–.58 despite the reduction from A.
+- Specify labelled references for two known screens and prepared gaze windows,
+  without the current stimulus name/screenshot. This is offline recognition.
+- Correct bagging's aggregation to averaging the members' class probabilities
+  and selecting the largest average. The existing implementation is unchanged.
+- All seven locked people retain predictions: 369 windows. Pid 18 has 29 vehicle
+  windows only and a separate vehicle recall. The equal-person two-class BA/F1
+  and paired intervals use the other six people, not all seven or 369 independent
+  windows. The intervals are descriptive and exclude retraining uncertainty.
+- Transfer has no consistent gain in this experiment. Development A/B is
+  .684/.499 versus scratch .687/.483; test is .759/.458 versus .753/.527. The
+  .006 test A difference does not establish an improvement. Architecture is
+  shared, but source data, learning rate and training duration also differ.
+- State that timing begins with prepared inputs; transfer target-refit time
+  excludes source pretraining. Keep the original tables and measured values.
+
+### V3 fingerprint investigation: unresolved, checks unchanged
+
+Recomputed events and sequence arrays in memory from the preserved local A1/V2
+caches with the submitted functions, using Python 3.12.3 on Linux/WSL x86_64.
+NumPy/pandas/sklearn are 2.5.3/2.3.3/1.9.1, the same recorded versions for those
+packages on Eivind's macOS run. Temporary diagnostic code is under `/tmp`; the
+builders' writing entry points were not run. No cache/result was overwritten.
+
+The local V2 Parquet still matches its original byte hash
+`34a2b0f7c6bd2d514958ae923a062b65c834c8b6f88b636f4435c387d62fae58`.
+Window keys/sample counts match the saved quality evidence. All 1,330 windows
+pass the event translation check. Comparing every saved development event
+quantile gives only one difference: median saccade amplitude is
+1.365235205303114 locally versus 1.3652352053031136 in the saved summary
+(difference `4.44e-16` degrees).
+
+| Content fingerprint | Original macOS run | Local reconstruction |
+|---|---|---|
+| V2 | `74851c05c90b7309f9cba69464db92de371ca8ddbc5ce3c8356a53a1383431b0` | `19f89166f1cff8f545beb15168fd3605e62d854906d55e08d7c89b9a864a3b13` |
+| V3 | `a94ca5e28f7e15bc3c52722b43e7d46bf911afccd8d6fe1c32fde1e5fd8116b2` | `f7099eefd78d1e110ca20b8bbfac8eade5367325789fcc58f5f1c3224d4ee8ee` |
+
+Both full float32 sequence digests reproduce exactly: code `ffb09e54…` and
+transfer source `870f2e40…`; all 658 source windows are from the 23 development
+people. The 180 code-grid collisions and per-fold source counts also reproduce.
+
+`fixations.fingerprint` hashes `%.17g` CSV text, so tiny floating-point differences
+can change the hash. Platform rounding is a plausible explanation, but equal
+quantiles and float32 sequences do not establish equality of every float64
+feature. The original macOS V3 table is ignored/unavailable in this checkout.
+Eivind's original table is needed to compare keys, dtypes and every feature
+column and establish the full cause. Do not replace the expected hash, weaken
+the comparison or rerun the test based on this diagnostic. The model runners'
+strict assertions remain intact. The report now states this reproduction limit.
+
+### Follow-up validation and exports
+
+- Recomputed 31,182 existing prediction rows and 706 participant metric rows
+  across V2, V3 basic, ensembles, deep models and final test. Confusions, BA/F1,
+  final person-bootstrap intervals and paired A-minus-B intervals agree with
+  saved evidence. All variants use the same windows within each stage; the
+  development/tabular/CNN keys and labels agree. The 62 checked V3/deep/final
+  parameter choices match their saved inner/development search winners.
+- All nine Markdown tables are byte-identical to merged main. No experiment
+  source, plan/configuration, result file, original cache or figure was changed.
+- Regenerated HTML using the existing export script's STYLE and Markdown
+  `tables`/`fenced_code` extensions. On Linux, a temporary Playwright driver used
+  headless Chromium 156, Letter pages with 0.4-inch print margins, and Liberation
+  Sans as in the original PDF. No repository export code was changed.
+- HTML exactly matches the Markdown render. PDF text matches HTML apart from
+  rendered list numbers/repeated table headers. All three embedded figure images
+  match their original PNGs pixel-for-pixel. Viewed all 12 PDF pages: no clipped
+  content or blank pages; text stays within page margins, and tables/figures are
+  readable. The local REVIEW.md still matches its preserved copy byte-for-byte.
+
+Earlier stage-specific notes below describe the state when those stages were
+run; they are retained as history.
 
 ## Problem and scope
 
@@ -34,9 +123,9 @@ sources were checked against the paper's full text and Apple's page.
 ML problem: binary classification of two-second gaze windows, vehicle or
 rectangle, for previously unseen participants, scored by balanced accuracy with
 equal weight per person. Feature group A includes mean gaze position; B removes
-it. The A–B difference shows how much information lies in where people look
-rather than how they look. Use code screens only; task names and screenshots are
-never model inputs.
+it. The A–B difference compares predictive performance of separately tuned
+pipelines; it does not measure information or establish causation. Use code
+screens only; task names and screenshots are never model inputs.
 
 This is a closed-set, offline study with two known texts; not comprehension
 measurement, source reconstruction, arbitrary-program recognition, evidence of
@@ -56,7 +145,7 @@ or results changed.
 
 | # | Requirement | Status and evidence |
 |---|---|---|
-| 1 | Practical and ML problem | Done: privacy framing and A/B question above (revised 2026-11-02); final report still needed |
+| 1 | Practical and ML problem | Done: privacy framing and A/B question above; report scope/conclusions clarified after review |
 | 2 | Justified preprocessing | Done for this analysis: A1 reuse and V2 time-quality rule |
 | 3 | Justified feature extraction | Done: 13 window summaries, plus 8 V3 I-VT event features |
 | 4 | Selection/reduction or justified omission | Done: A/B design, no PCA, and V3 mutual-information selection inside CV |
@@ -69,7 +158,8 @@ or results changed.
 
 The one-page PDF says 200 points, pass at 130. No deadline, submission format,
 minimum sample size or library restriction is stated there; check course-wide
-rules. Justifications carry marks. The final report is not yet written.
+rules. Justifications carry marks. The report is written; course-wide submission
+rules still need checking.
 
 ## Data and A1 preservation
 
@@ -374,7 +464,8 @@ window's last sample on step 500; floor indexing is used instead (deep_plan.json
   fold"): centred sequences carry no reliable task signal for this network.
 - Selected settings vary by fold (filters 16/32, kernels 5/9/15); refits used
   5–40 epochs. Seeds 43–44 move fold scores by ~.02, less than fold differences.
-- Transfer does not help: .684 vs .687 with position, .499 vs .483 without.
+- No consistent transfer gain is established: .684 vs .687 with position,
+  .499 vs .483 without.
   Fine-tuning won in five of six cases; one B fold stopped after two epochs. The
   source task (instruction vs answer screen) has only 255–322 windows per inner
   split and 430–447 per outer training set.
@@ -423,7 +514,8 @@ V2 basic models on test: tree .726/.510, kNN .565/.520, SVM .625/.531.
 - Refit on 961 windows: V3 trees and kNN .02–.03 s (mostly the MI filter), SVM .04 s, AdaBoost .3–.5 s,
   CNN 0.7–5.9 s; predicting 369 test windows: tree <1 ms, kNN/SVM 1–9 ms,
   AdaBoost 8 ms, bagged kNN 66–164 ms, CNN 35–44 ms on one thread.
-- CNN seed spread on test: .720–.756 (A), .527–.556 (B), transfer similar.
+- CNN seed spread on test: .720–.756 (A), .527–.556 (B); transfer .757–.767
+  (A), .458–.547 (B). These include primary seed 42 and spread seeds 43/44.
 - Without contention the full test, including CNN tuning on three development
   partitions, took under five minutes, versus 3 h 50 min for the development CNN
   run: the development CNN timings are dominated by the CPU contention noted above.
@@ -459,7 +551,7 @@ batches hit the declared 1,000-call cap sooner. The audit was corrected to the
 predeclared budget-or-cap rule; raw results were retained, no models rerun.
 See results/model_comparison_v2/verification.json. Source and plan hashes match.
 
-## Open questions and next work
+## Original next steps (before V3, retained as history)
 
 1. Ask course staff what **transfer** in point 8 requires and whether point 7
    requires different base-learner families. Neither is assumed resolved/complete.

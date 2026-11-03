@@ -156,8 +156,8 @@ second, fractions).
 | RBF-kernel SVM | non-linear boundary with explicit regularisation, which limits overfitting with few people | C = 0.1/1/10, gamma = 0.01/0.1 |
 
 **Why these values.** Each family has six settings, crossed with the filter's three k values
-(section 4). Tree depth runs from 2, one step above the stump, to 6: up to 64 leaves of at
-least 10 windows, about what 640 training windows can fill. Odd neighbour counts avoid tied
+(section 4). Tree depth runs from 2, one step above the stump, to 6: up to 64 leaves, which
+at the larger minimum leaf of 10 windows is about all 640 training windows. Odd neighbour counts avoid tied
 votes; 5 is local and 31 (about 5% of the training windows) is smooth. C spans strong to weak
 regularisation on a log scale, and gamma 0.01/0.1 lies on either side of scikit-learn's default
 (1/number of features for standardised data, about 0.05 when all features are kept). The chosen values often sit at
@@ -166,7 +166,7 @@ outside the grid; the grids were declared before the comparison and not widened 
 
 **Why not the others.** Regression and additive models give each feature a separate effect
 unless interactions are added by hand, while the tree and SVM can combine position with
-spread; the SVM with small gamma also comes close to a linear boundary. Gaussian Naive Bayes
+spread. Gaussian Naive Bayes
 assumes independent, normally distributed features within each class, but several fractions
 pile up at 0 or 1; at least half of the windows have no upward saccade. A neural network is
 covered in section 9.
@@ -202,7 +202,7 @@ class (vehicle recall .69, rectangle .41).
 
 **Why kNN is weakest with position.** One likely reason is that it is the only one of the three
 without class weights, so it under-predicts rectangle, which balanced accuracy penalises. This
-is not the whole story: it has the same bias without position, where it beats the tree. Fewer
+is not the whole story: it has the same bias without position, where it matches the tree. Fewer
 features did not help either; on the inner folds, keeping five beat keeping all 21 in only one
 of three folds. Without position, the three are within .05 of each
 other.
@@ -319,9 +319,11 @@ models and bagging, .10 for boosting and .20 for the CNN. Without position, the 
 reach about .56, none reaches the position-only stump (.581), and the CNN falls to chance.
 AdaBoost profits because sequential shallow trees combine the position features with spread
 and pupil features. The CNN profits most because it sees the whole two-second trajectory on
-the screen rather than one mean point. Bagging gives kNN little, because kNN already has low
-variance (section 7), and the bagged model leans even more toward vehicle: it finds only about
-30% of rectangle windows, against 40% for single kNN. Transfer gives
+the screen rather than one mean point. Bagging gives kNN little, because kNN changes little when
+training rows are resampled (section 7), and the bagged model leans even more toward vehicle:
+it finds only about 30% of rectangle windows, against 40% for single kNN. A likely reason is
+that it chose 31 neighbours with equal votes in five of six folds, where single kNN mostly
+chose 5; larger neighbourhoods follow the 57% vehicle share more closely. Transfer gives
 nothing in either group. The source task is small, and telling instruction from answer
 screens is probably also mostly a layout task, so its filters likely add little that the
 target task cannot learn directly.
@@ -359,9 +361,9 @@ differences between folds.
 
 **Results.** With absolute position, the CNN is the best development model (.687; folds
 .620–.757). Without it, the CNN is near chance (.483; folds .404–.550). Centred sequences
-carry spread, speed, pupil and fixation structure, yet the network finds no reliable
-difference between the programs in them. Yet SVM and AdaBoost reach .56 from summary features
-of the same windows. About 640 training windows were enough for the CNN to learn the strong
+carry spread, speed, pupil and fixation structure, but the network finds no reliable
+difference between the programs in them, while SVM and AdaBoost reach .56 from summary
+features of the same windows. About 640 training windows were enough for the CNN to learn the strong
 position signal, but are probably too few to learn such a weak one from raw sequences.
 
 ## 10. Complexity, computation time and performance
@@ -402,7 +404,7 @@ the CNN (.69 / .75), at a cost that grows from microseconds to seconds. Without 
 capacity buys little. On development, a 0.1 ms tree and an 8 ms ensemble reach .51–.56, below
 the position stump, and the CNN falls to chance (.48); on test, the tree (.58) is level with the
 ensemble and above the CNN (.53). The input keeps only a weak signal, and the CNN, which must
-learn its own summaries from about 640 windows, probably has too little data to find it
+learn its own summaries from 640–960 windows, probably has too little data to find it
 (section 9).
 
 **In terms of the real-world problem.** Computation is no barrier for anyone holding gaze data.

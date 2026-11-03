@@ -369,8 +369,9 @@ window's last sample on step 500; floor indexing is used instead (deep_plan.json
 | CNN + transfer | .684 / .499 | .105 / .094 | .635–.747 / .474–.521 | .020 / .017 |
 
 - CNN A is the best development model (AdaBoost A3 .659); with absolute x/y the
-  network learns where on screen the reading happens. CNN B is at or below chance
-  in every fold: centred sequences carry no usable task signal for this network.
+  network learns where on screen the reading happens. CNN B is near chance (folds
+  .503, .404 and .550; corrected on 2026-11-03 from "at or below chance in every
+  fold"): centred sequences carry no reliable task signal for this network.
 - Selected settings vary by fold (filters 16/32, kernels 5/9/15); refits used
   5–40 epochs. Seeds 43–44 move fold scores by ~.02, less than fold differences.
 - Transfer does not help: .684 vs .687 with position, .499 vs .483 without.

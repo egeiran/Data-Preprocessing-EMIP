@@ -23,9 +23,13 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
 
 ## Problem and scope
 
-Real-world problem: eye trackers are entering consumer devices, and a common
-safeguard is to share derived gaze signals (pupil size, blinks, eye speed)
-instead of raw screen coordinates. Is that enough to hide what someone reads?
+Real-world problem: eye trackers are entering consumer devices. Proposed
+safeguards give applications derived measures instead of raw gaze samples
+(David-John et al., 2021, TVCG), and Apple Vision Pro shares no eye input with
+apps. We keep derived signals (pupil size, blinks, eye speed, spread) but
+withhold absolute screen position. Is that enough to hide what someone reads?
+Wording revised 2026-11-03 (Eivind): "a common safeguard" had no source; both
+sources were checked against the paper's full text and Apple's page.
 
 ML problem: binary classification of two-second gaze windows, vehicle or
 rectangle, for previously unseen participants, scored by balanced accuracy with

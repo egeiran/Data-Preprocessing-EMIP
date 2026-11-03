@@ -9,9 +9,13 @@ Code and every result file: https://github.com/egeiran/Data-Preprocessing-EMIP, 
 
 **Real-world problem.** Eye trackers are moving into consumer devices such as VR/AR headsets,
 webcam-based tracking in browsers and remote studies that share raw recordings. Gaze data is
-sensitive because it shows what a person looks at and reads. A common safeguard is to share
-only *derived* signals, such as pupil size, blinks and eye speed, and keep the raw screen
-coordinates private. We ask whether that is enough to hide what someone is reading.
+sensitive because it shows what a person looks at and reads. Researchers have proposed that
+applications receive only *derived* measures, such as fixations and dwell times within areas of
+interest, instead of raw gaze samples, which can identify the user (David-John et al., 2021).
+Some platforms do not share the user's eye input with apps at all (Apple, 2026). We test a
+simple, position-free version of this idea: keep derived signals such as pupil size, blinks,
+eye speed and gaze spread, but withhold absolute screen position. Is that enough to hide what
+someone is reading?
 
 **Machine-learning problem.** Binary classification of two-second gaze windows: is a
 previously unseen person reading the `vehicle` or the `rectangle` program? Every model is
@@ -378,9 +382,10 @@ trains in seconds, so content inference from shared recordings is cheap. What ma
 signals are shared. With raw coordinates, a 39-node tree identifies the program for new people
 well above chance, and a small CNN does better still. With coordinates withheld, every method
 dropped to or below the level of a single threshold on mean position, and the CNN to chance. In this
-setting the common safeguard works. But the derived signals that remain (horizontal spread,
-pupil size) still gave .56–.58 for several models, so they are not information-free, and with
-more texts, people or data a stronger model might find more.
+setting, withholding absolute position removed most of the content signal. But the derived signals
+that remain (horizontal spread, pupil size) still gave .56–.58 for several models, so they are not
+information-free. Pupil size is also known to reveal cognitive load and emotional arousal
+(David-John et al., 2021), and with more texts, people or data a stronger model might find more.
 
 ## Conclusion
 
@@ -411,10 +416,15 @@ closed two-program setting, though the derived signals are not entirely free of 
 
 1. EMIP Workshop. *Distributed Collection of Eye Movement Data in Programming: Dataset*.
    https://emipws.org/dataset/ (accessed 14 September 2026)
-2. Salvucci, D. D. and Goldberg, J. H. (2000). Identifying fixations and saccades in
+2. David-John, B., Hosfelt, D., Butler, K. and Jain, E. (2021). A privacy-preserving approach
+   to streaming eye-tracking data. *IEEE Transactions on Visualization and Computer Graphics*,
+   27(5), 2555–2565. https://doi.org/10.1109/TVCG.2021.3067787
+3. Apple (2026). *Eyes, Hands & Privacy*. https://www.apple.com/legal/privacy/data/en/eyes-hands/
+   (updated 14 September 2026, accessed 3 November 2026)
+4. Salvucci, D. D. and Goldberg, J. H. (2000). Identifying fixations and saccades in
    eye-tracking protocols. *Proceedings of the 2000 Symposium on Eye Tracking Research &
    Applications (ETRA)*, 71–78.
-3. Olsen, A. (2012). *The Tobii I-VT Fixation Filter: Algorithm description*. Tobii Technology.
+5. Olsen, A. (2012). *The Tobii I-VT Fixation Filter: Algorithm description*. Tobii Technology.
 
 ## AI declaration
 

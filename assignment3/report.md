@@ -160,7 +160,7 @@ second, fractions).
 least 10 windows, about what 640 training windows can fill. Odd neighbour counts avoid tied
 votes; 5 is local and 31 (about 5% of the training windows) is smooth. C spans strong to weak
 regularisation on a log scale, and gamma 0.01/0.1 lies on either side of scikit-learn's default
-(1/number of features, about 0.05 when all features are kept). The chosen values often sit at
+(1/number of features for standardised data, about 0.05 when all features are kept). The chosen values often sit at
 a grid edge (depth 6 and 5 neighbours in 4 of 6 folds each), so the best setting may lie
 outside the grid; the grids were declared before the comparison and not widened afterwards.
 
@@ -200,11 +200,11 @@ windows but only 17% of vehicle windows, because it learned a single y-threshold
 SVM with A3 have more even class recalls (.56/.63 and .61/.59). kNN favours the majority
 class (vehicle recall .69, rectangle .41).
 
-**Why kNN is weakest with position.** It is the only one of the three without class weights,
-so it under-predicts rectangle, which balanced accuracy penalises. It is also unstable across
-folds (.49–.61), and keeping fewer features did not help: the fold that kept five scored .49,
-the two that kept all 21 scored .61 and .50. Tree and SVM fit a boundary to the labels, while
-kNN only looks at nearby training windows. Without position, the three are within .05 of each
+**Why kNN is weakest with position.** One likely reason is that it is the only one of the three
+without class weights, so it under-predicts rectangle, which balanced accuracy penalises. This
+is not the whole story: it has the same bias without position, where it beats the tree. Fewer
+features did not help either; on the inner folds, keeping five beat keeping all 21 in only one
+of three folds. Without position, the three are within .05 of each
 other.
 
 **Uncertainty.** Single people range from .44 to .80 (tree, A3) and from .34 to .89 (SVM,
@@ -319,9 +319,9 @@ models and bagging, .10 for boosting and .20 for the CNN. Without position, the 
 reach about .56, none reaches the position-only stump (.581), and the CNN falls to chance.
 AdaBoost profits because sequential shallow trees combine the position features with spread
 and pupil features. The CNN profits most because it sees the whole two-second trajectory on
-the screen rather than one mean point. Bagging gives kNN little, because averaging many kNN
-members reduces variance but not kNN's bias toward the majority class: the members have no
-class weights either, and bagged kNN finds only about 30% of rectangle windows. Transfer gives
+the screen rather than one mean point. Bagging gives kNN little, because kNN already has low
+variance (section 7), and the bagged model leans even more toward vehicle: it finds only about
+30% of rectangle windows, against 40% for single kNN. Transfer gives
 nothing in either group. The source task is small, and telling instruction from answer
 screens is probably also mostly a layout task, so its filters likely add little that the
 target task cannot learn directly.
@@ -389,8 +389,8 @@ warm repetitions on one CPU thread). Balanced accuracy is development / test.
 **Complexity and time.** Time follows model size. A tree predicts by following one path of at
 most six splits, so 369 windows take 0.1 ms. kNN and the SVM compare every window with stored
 windows or support vectors (1–9 ms). AdaBoost evaluates 200 trees (8 ms). Bagged kNN runs 50
-neighbour searches per window, the slowest prediction of the feature models (66–164 ms) for no
-gain in accuracy. The CNN costs the most to train, seconds against well under a second for the
+neighbour searches per window, the slowest prediction of the feature models (66–164 ms) for little
+or no gain in accuracy. The CNN costs the most to train, seconds against well under a second for the
 others, plus a hyperparameter search of one to two minutes per feature group. Search time also
 depends heavily on the machine: on the shared laptop during development, with other jobs and a
 power-saving mode competing for the CPU, the nested CNN search took almost four hours. The final

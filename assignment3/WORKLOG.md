@@ -23,8 +23,15 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
   that "transfer" in point 8 means transfer learning; report.md states our reading.
   (3) Trym should confirm the reframing and the AI declaration. (4) Personal
   reflections or contribution statements, if required, are for each author.
-- Unresolved: V3 feature fingerprint portability. The exact check is preserved;
-  comparison with Eivind's original macOS table is needed before changing it.
+- V3 fingerprint portability (Linux rebuild, 2026-11-04, Python 3.13, same
+  numpy/pandas/sklearn/scipy/pyarrow versions): A1 cache and V1/V2 windows match
+  their byte hashes; V3 fingerprint is `f7099e…`, as in Trym's run. On the Linux V3
+  table, `models.py basic` gives identical predictions, participant metrics and
+  permutation importance (one non-winning inner score of 324 differs by .001).
+  `models.py ensembles` gives identical bagged kNN; AdaBoost changes 4 (A3) and
+  74 (B3) development predictions, BA .656/.546 vs .659/.561 (B3 outer fold 3
+  selects depth 2, rate 1.0). Whether features or platform arithmetic cause this
+  is not established. Strict checks unchanged; CNN and final test not rerun.
 
 ## Follow-up review (Trym, 2026-11-03)
 

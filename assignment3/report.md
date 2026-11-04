@@ -77,8 +77,10 @@ hyperparameters, so an outer validation person never influences a model choice.
 
 **Reproducibility.** The committed V2 CSV evidence and predictions were reproduced byte-for-byte
 on macOS, where the later stages were run. Later stages record content fingerprints because
-Parquet bytes differ between machines. A Linux reconstruction of V3 does not match its recorded
-fingerprint; comparison with the original macOS feature table is still needed (`WORKLOG.md`).
+Parquet bytes differ between machines. A Linux rebuild of V3 does not match the macOS
+fingerprint, which hashes every float to the last digit. With the Linux features, tree, kNN,
+SVM and bagged kNN give identical development predictions; AdaBoost moves slightly (A3/B3
+.656/.546 instead of .659/.561; `WORKLOG.md`).
 
 ## 3. Feature extraction
 
@@ -146,8 +148,9 @@ task order rather than reading behaviour; this is a limitation, not a finding.
 *Figure 1. Permutation importance on outer validation windows (drop in balanced accuracy
 when one feature is shuffled; mean of three folds; "–" means the feature is not in the
 group).* With position, the models rely mostly on mean x and y and on horizontal spread.
-Without position, the best models use horizontal spread (roughly line length) and the rates
-of fixations and saccades. B therefore still contains relative spatial structure. It is not
+Without position, the best models use horizontal spread (roughly line length); SVM also uses
+the rates of fixations and saccades, and AdaBoost mean pupil size (mainly in one fold), which
+may reflect luminance rather than reading. B therefore still contains relative spatial structure. It is not
 purely "how" people look.
 
 ## 5. Three algorithms
@@ -201,7 +204,7 @@ the outer fold where that person was held out.
 **Position improves prediction.** A depth-one tree that only sees mean y reaches .581,
 providing a positional benchmark. Without absolute position, tree and kNN are near chance.
 SVM retains a modest result above the position-free dummy (.558 vs .500), though one of its
-outer folds is at .504. B therefore still carries predictive information for these models.
+outer folds is at .504. B therefore still carries some predictive information for the SVM.
 
 **Similar accuracy, different errors.** The stump predicts rectangle for 96% of rectangle
 windows but only 17% of vehicle windows, because it learned a single y-threshold. Tree and

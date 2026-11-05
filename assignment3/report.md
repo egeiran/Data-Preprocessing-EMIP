@@ -125,10 +125,11 @@ was seen.
 mean-position features to test a specific hypothesis. Identifiers, labels, stimulus names,
 timestamps, language and raw eye-position or gaze-vector columns are never given to a model.
 
-**No PCA.** Assignment 1 used PCA on the sample-level data. Here we do not, for two reasons.
-First, the feature sets are small (11–21) and each feature has a meaning that we want to
-explain. Second, every principal component would mix mean position into the other features,
-which would destroy the A/B comparison that the whole study rests on.
+**No PCA.** We keep the small feature sets (11–21) in their original, interpretable form.
+PCA fitted separately within the A and B training pipelines would preserve the exclusion
+of absolute position from B. Instead, tree, kNN and SVM use the mutual-information filter
+below, including the option to keep all features. The ensembles select through tree splits
+or random feature subsets, so we do not add a separate PCA stage.
 
 **Learned filter selection.** For tree, kNN and SVM, a mutual-information filter
 (`SelectKBest`) is part of the training pipeline and keeps k = 5, 10 or all features. k is
@@ -483,7 +484,6 @@ but does not measure how much content information remains or demonstrate privacy
 
 ## AI declaration
 
-AI assistants, including Claude (Anthropic), were used for writing and checking code, for the
-figure and export scripts, and for drafting and editing the report text. Every method choice
-was fixed in a plan file before results existed, every number in this report is read from the
-committed result files, and the authors checked the choices, numbers and interpretations.
+Claude (Anthropic) and Codex (OpenAI) were used as assistants for writing and checking code,
+for the figure and export scripts, and for drafting and editing the report text. Every method
+choice, number and interpretation was checked by the authors.

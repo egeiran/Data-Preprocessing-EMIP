@@ -11,8 +11,9 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
 - Eivind (branch `eivind/assignment3`, from 2026-11-02): problem reframed around
   A vs B and gaze-data privacy; V2 reproduced on macOS; V3 I-VT event features;
   mutual-information selection; AdaBoost and bagged kNN; sequence CNN with
-  transfer; one-time locked-test evaluation; figures and report.md. Each step's
-  plan was committed before its scores; amendments are dated in the plan files.
+  transfer; one-time locked-test evaluation; figures and report.md. The model/deep
+  and final-test plans preceded their corresponding result commits; implementation
+  amendments are recorded in the plan files.
 - Start with report.md, then the summary.csv in each results/ subdirectory.
 - PR #3 merged as `38369f2`. Follow-up on `assignment3-review-fixes` makes small
   report corrections; see the dated review section below. The local REVIEW.md
@@ -32,6 +33,33 @@ Detailed initial notes remain in Git: `git show 2be417f:assignment3/WORKLOG.md`.
   74 (B3) development predictions, BA .656/.546 vs .659/.561 (B3 outer fold 3
   selects depth 2, rate 1.0). Whether features or platform arithmetic cause this
   is not established. Strict checks unchanged; CNN and final test not rerun.
+
+## Final targeted report corrections (Trym, 2026-11-05)
+
+- Corrected the PCA rationale: fitting PCA separately within each group's training
+  pipeline would preserve the A/B distinction. PCA is omitted to retain interpretable,
+  small feature sets alongside the declared mutual-information filter for the three
+  basic models and split/subset selection in the ensembles.
+- Adapted Assignment 1's short AI declaration to A3's actual uses and both authors;
+  Claude and Codex are named. Removed the blanket claim that every method choice
+  preceded all results. The A1-specific breakdown by task is not carried over.
+- Planning history remains stage-specific: the A/B comparison was in the V2 plan
+  (`2c2edf8`), while the privacy framing followed the V2 results (`b6dbc6a`).
+  The V3 model/deep plans (`1e55959`) followed V2 scores and V3 feature distributions
+  and preceded their model-result commits. The AdaBoost and sequence-indexing
+  amendments are recorded as preceding their affected scores; Git does not establish
+  the timing of every uncommitted edit. The final-test plan (`b2f4351`) preceded
+  the committed final-test results (`66a34f1`). Later reviews revised explanations.
+- Scope is report text, exports and this log only. The requested Linux-hash
+  investigation is dropped; the existing record and checks are unchanged. No model
+  training, new model selection, new test predictions or push.
+- Regenerated HTML with the existing export stylesheet and Markdown extensions,
+  and PDF with Chromium 156, Liberation Sans, Letter pages and 0.4-inch margins.
+  The temporary Linux driver and fonts are under `/tmp`; export source is unchanged.
+  Checks pass: HTML matches Markdown, PDF text matches HTML apart from list numbers,
+  all table rows and embedded figure pixels are unchanged, and all 12 pages contain
+  content within page bounds. Visually reviewed the page overview and the corrected
+  PCA (page 3) and AI (page 12) paragraphs; no clipping or blank pages.
 
 ## Follow-up review (Trym, 2026-11-03)
 

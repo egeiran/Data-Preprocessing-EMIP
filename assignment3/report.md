@@ -24,21 +24,25 @@ trained twice:
 - **A, with absolute position:** the window features include the mean gaze position on screen.
 - **B, without absolute position:** the same features with the mean position removed.
 
-The difference between A and B shows how much of the information lies in *where* people
-look rather than *how* they look. Evaluation is on people the model has never seen, using
-balanced accuracy averaged with equal weight per person, so that people with long
-recordings do not dominate.
+The difference between A and B compares predictive performance with and without absolute
+position. Each group is tuned separately, so this is a pipeline comparison, not a measure
+of how much information remains or evidence of causation. Evaluation is on people the model
+has never seen, using balanced accuracy averaged with equal weight per person, so that people
+with long recordings do not dominate.
 
 **Why this dataset fits.** The EMIP recordings come from a code-comprehension study. Each
 participant read both short programs, one after the other, and answered a multiple-choice
-question after each (20 started with `rectangle`, 13 with `vehicle`). Because every person
-contributes both classes, a model must separate the two programs *within* a person, and
+question after each (20 started with `rectangle`, 13 with `vehicle`). Most retained people
+contribute both classes, allowing comparisons of the two programs *within* a person, and
 grouped validation by person is possible in every fold. Labels such as expertise or answer
 correctness would give one label per person, about 30 examples in total, and they are not
 part of the recordings we have.
 
-**Scope.** This is a closed-set study with two known texts and 30 usable people. A weak
-result without position would not prove that content cannot leak through other signals,
+**Scope.** This is a closed-set study with two known texts and 30 usable people. We assume a
+recipient has labelled reference recordings for these two screens and receives prepared gaze
+windows, without the current screen's name or screenshot. This is offline recognition of known
+screens, not code reconstruction or comprehension. A weak result without position would not
+prove that content cannot leak through other signals,
 larger models or more data. The comparison of A and B was planned before any results
 existed; using it as the main question and adding the privacy motivation was decided after
 the first development results (recorded in `WORKLOG.md`).
@@ -64,14 +68,19 @@ The 80% threshold was fixed from the development quality distribution before any
 was trained. It removes 31 of 992 development windows and no person.
 
 **Split.** The seven test people from Assignment 1's participant split are locked: they were
-not used for any choice and were evaluated exactly once, at the end (section 8). The 23
+not used for model choices and were evaluated in one planned final run (section 8). All seven
+have test predictions (369 windows), but only six have both classes after quality filtering.
+Pid 18 has only vehicle windows and is reported separately by vehicle recall. The 23
 development people (961 windows, 546 vehicle and 415 rectangle) are divided into three outer
 folds by person. Inside each outer training set, three inner folds by person choose the
 hyperparameters, so an outer validation person never influences a model choice.
 
-**Reproducibility.** The first comparison (V2, made on Linux) was reproduced byte-for-byte on
-a second machine and operating system (macOS), where all later stages were run. Only the binary bytes of the cached Parquet tables differ
-between machines, so the later stages check data by content fingerprints.
+**Reproducibility.** The committed V2 CSV evidence and predictions were reproduced byte-for-byte
+on macOS, where the later stages were run. Later stages record content fingerprints because
+Parquet bytes differ between machines. A Linux rebuild of V3 does not match the macOS
+fingerprint, which hashes every float to the last digit. With the Linux features, tree, kNN,
+SVM and bagged kNN give identical development predictions; AdaBoost moves slightly (A3/B3
+.656/.546 instead of .659/.561; `WORKLOG.md`).
 
 ## 3. Feature extraction
 
@@ -139,8 +148,9 @@ task order rather than reading behaviour; this is a limitation, not a finding.
 *Figure 1. Permutation importance on outer validation windows (drop in balanced accuracy
 when one feature is shuffled; mean of three folds; "–" means the feature is not in the
 group).* With position, the models rely mostly on mean x and y and on horizontal spread.
-Without position, the best models use horizontal spread (roughly line length) and the rates
-of fixations and saccades. B therefore still contains relative spatial structure. It is not
+Without position, the best models use horizontal spread (roughly line length); SVM also uses
+the rates of fixations and saccades, and AdaBoost mean pupil size (mainly in one fold), which
+may reflect luminance rather than reading. B therefore still contains relative spatial structure. It is not
 purely "how" people look.
 
 ## 5. Three algorithms
@@ -191,9 +201,10 @@ the outer fold where that person was held out.
 | RBF-SVM | .607 / .558 | .581 / .528 | .526–.690 / .504–.595 |
 | Majority class / position-only stump | .500 / .581 | .352 / .453 | |
 
-**Position carries most of the signal.** A depth-one tree that only sees mean y reaches .581,
-about as high as kNN and SVM with every feature. Without absolute position, tree and kNN fall
-to near chance. SVM keeps the most (.558), but one of its outer folds is at .504.
+**Position improves prediction.** A depth-one tree that only sees mean y reaches .581,
+providing a positional benchmark. Without absolute position, tree and kNN are near chance.
+SVM retains a modest result above the position-free dummy (.558 vs .500), though one of its
+outer folds is at .504. B therefore still carries some predictive information for the SVM.
 
 **Similar accuracy, different errors.** The stump predicts rectangle for 96% of rectangle
 windows but only 17% of vehicle windows, because it learned a single y-threshold. Tree and
@@ -235,7 +246,8 @@ rate (0.1/1) are tuned.
 1. Draw a bootstrap sample of the training windows, with replacement.
 2. Draw a random subset of the features (50%, 75% or 100%).
 3. Fit a scaler and a kNN classifier on that sample and subset.
-4. Repeat for 50 members. The prediction is the majority vote.
+4. Repeat for 50 members. Average their class probabilities and predict the class with the
+   largest average.
 
 Bagging reduces variance by averaging models fitted to perturbed data. kNN changes little
 under row resampling alone, so the random feature subsets are what make the members differ.
@@ -252,10 +264,10 @@ score existed.
 | AdaBoost (trees) | **.659** / .561 | .648–.672 / .527–.588 |
 | Bagged kNN | .558 / .518 | .486–.612 / .487–.553 |
 
-AdaBoost with position is the best development model and also the most stable over folds.
+AdaBoost with position is the best tabular development model and also the most stable over folds.
 It is .05 above the best single model and .08 above the stump. Bagging helps kNN with
-position (.535 to .558) but not without it. Neither ensemble lifts the position-free group
-clearly above .56: ensembles extract more from position, not from gaze dynamics.
+position (.535 to .558) but not without it. AdaBoost improves more with position, while its
+position-free score (.561) still exceeds the dummy (.500).
 
 ## 8. Basic vs boosting vs bagging vs transfer
 
@@ -284,10 +296,12 @@ inner split, 430–447 per outer split), so no validation or test person leaks i
 | CNN + transfer | .684 | .499 | .185 |
 | Controls: majority / position-only stump | .500 / .581 | | |
 
-**Locked test.** Every method was then tuned on all 23 development people, refitted on all 961
-development windows and scored once on the seven locked people. One of them (pid 18) has only
-vehicle windows, so the two-class metrics use six people; the intervals resample those six
-people 10,000 times and are descriptive only.
+**Locked test: seven people, six with both classes.** Every method was then tuned on all 23
+development people and refitted on all 961 development windows. The final run produced
+predictions for all 369 windows from the seven locked people. Pid 18 has only vehicle windows;
+its 29 predictions and vehicle recall are retained in the result files. Balanced accuracy,
+macro-F1 and the paired comparisons below use the other six people, with equal weight per
+person. The intervals resample those six people 10,000 times and are descriptive only.
 
 | Method | With position (A) | Without position (B) | A − B, paired (95% interval) | People with A > B |
 |---|---|---|---|---|
@@ -306,27 +320,33 @@ people 10,000 times and are descriptive only.
 development people, outer folds. Right: locked test, six two-class people, with 95%
 person-bootstrap intervals. Vertical lines: majority class and the position-only stump.*
 
-The test confirms the development pattern on fresh people. With position, the CNN, the tree and
-AdaBoost reach .71–.76. Without position, the best method (tree, .584) only ties the stump that
-sees nothing but mean y (.582). Every family is better with position, and for five of the seven
-the paired interval excludes zero. Scores with position are higher on test than on development
-(CNN .753 vs .687, tree .728 vs .607). Six people cannot tell whether that is luck or easier
+The test supports the development pattern on fresh people. With position, the CNN, the tree and
+AdaBoost reach .71–.76. Without position, tree (.584), SVM (.582) and AdaBoost (.575) still exceed
+the dummy (.500). Tree B is close to the position-only stump (.582), which is a positional
+benchmark rather than a position-free baseline. Every family's mean is higher with position;
+for five of the seven the descriptive paired interval excludes zero. Scores with position are
+higher on test than on development (CNN .753 vs .687, tree .728 vs .607). Six people cannot
+tell whether that is luck or easier
 recordings, so development remains the main comparison, and no model was re-chosen after the
 test.
 
-**Explanation.** Every family gains from absolute position. The gap is about .05 for the basic
-models and bagging, .10 for boosting and .20 for the CNN. Without position, the best methods
-reach about .56, none reaches the position-only stump (.581), and the CNN falls to chance.
+**Explanation.** On development, the A–B gap is about .05 for the best basic models and
+bagging, .10 for boosting and .20 for the CNN. Without position, the best methods reach about
+.56 against the .500 dummy, while the CNN is near chance. The positional stump (.581) is a
+separate reference, not a test of whether B contains useful information.
 AdaBoost profits because sequential shallow trees combine the position features with spread
 and pupil features. The CNN profits most because it sees the whole two-second trajectory on
 the screen rather than one mean point. Bagging gives kNN little, because kNN changes little when
 training rows are resampled (section 7), and the bagged model leans even more toward vehicle:
 it finds only about 30% of rectangle windows, against 40% for single kNN. A likely reason is
 that it chose 31 neighbours with equal votes in five of six folds, where single kNN mostly
-chose 5; larger neighbourhoods follow the 57% vehicle share more closely. Transfer gives
-nothing in either group. The source task is small, and telling instruction from answer
-screens is probably also mostly a layout task, so its filters likely add little that the
-target task cannot learn directly.
+chose 5; larger neighbourhoods follow the 57% vehicle share more closely. Transfer gives no
+consistent gain: development A/B is .684/.499 against .687/.483 from scratch; on test it is
+.759/.458 against .753/.527. The small test A difference (.006) does not establish an improvement,
+given participant and seed variation. The source task is small and may also mostly reflect
+layout, but that explanation is untested. The two variants share the selected architecture;
+transfer also changes source data, learning rate and training duration, so this comparison
+does not isolate pretraining alone.
 
 ## 9. Convolutional neural network
 
@@ -371,7 +391,9 @@ position signal, but are probably too few to learn such a weak one from raw sequ
 Sizes and times below come from the final models on an otherwise idle laptop (Apple M4):
 refit on all 961 development windows (median of five warm repetitions; one timed run for the
 CNNs, on four threads) and prediction of all 369 test windows, about 12 minutes of gaze (five
-warm repetitions on one CPU thread). Balanced accuracy is development / test.
+warm repetitions on one CPU thread). These timings start with prepared inputs and exclude
+cleaning and feature extraction; transfer refit time also excludes pretraining. Balanced
+accuracy is development / test, with six eligible people for the two-class test score.
 
 | Model (A / B) | Size of the fitted model | Refit (s) | Predict 369 windows (ms) | BA with position | BA without position |
 |---|---|---|---|---|---|
@@ -401,32 +423,32 @@ tuning of every method, including the CNNs, took under five minutes on the idle 
 **In terms of the machine-learning problem.** With absolute position, more capacity buys
 accuracy: from a one-split stump (.58) to a 39-node tree (.61 / .73), AdaBoost (.66 / .71) and
 the CNN (.69 / .75), at a cost that grows from microseconds to seconds. Without position, extra
-capacity buys little. On development, a 0.1 ms tree and an 8 ms ensemble reach .51–.56, below
-the position stump, and the CNN falls to chance (.48); on test, the tree (.58) is level with the
-ensemble and above the CNN (.53). The input keeps only a weak signal, and the CNN, which must
-learn its own summaries from 640–960 windows, probably has too little data to find it
-(section 9).
+capacity buys little in this comparison. On development, a 0.1 ms tree and an 8 ms ensemble
+reach .51–.56 against the .50 dummy, and the CNN is near chance (.48); on test, the tree (.58)
+is close to AdaBoost (.58) and above the CNN (.53). Several summary-feature models retain
+modest performance above dummy. The CNN must learn its own summaries from 640–960 windows;
+limited data may contribute to its weaker B result (section 9).
 
-**In terms of the real-world problem.** Computation is no barrier for anyone holding gaze data.
-Every model classifies 12 minutes of gaze in under 0.2 s on one CPU thread, and even the CNN
-trains in seconds, so content inference from shared recordings is cheap. What matters is which
-signals are shared. With raw coordinates, a 39-node tree identifies the program for new people
-well above chance, and a small CNN does better still. With coordinates withheld, every method
-dropped to or below the level of a single threshold on mean position, and the CNN to chance. In this
-setting, withholding absolute position removed most of the content signal. But the derived signals
-that remain (horizontal spread, pupil size) still gave .56–.58 for several models, so they are not
-information-free. Pupil size is also known to reveal cognitive load and emotional arousal
+**In terms of the real-world problem.** The measured model costs are low. Given prepared inputs,
+every model classifies 12 minutes of gaze in under 0.2 s on one CPU thread, and even the CNN
+refits in seconds. These model costs make inference feasible in this setting. What matters is
+which signals are shared. With raw coordinates, a 39-node tree identifies the program for new people
+well above chance, and the CNN has a higher score. With absolute position withheld, performance
+is lower across the evaluated families, but the remaining signals (horizontal spread, pupil
+size) still give .56–.58 for several models, above the .50 dummy. This does not establish
+person-level privacy protection or a limit on what another model could infer. Pupil size is
+also known to reveal cognitive load and emotional arousal
 (David-John et al., 2021), and with more texts, people or data a stronger model might find more.
 
 ## Conclusion
 
-On new people, eye-tracking windows reveal which of two programs is being read, but almost all of
-that information lies in *where* people look. With absolute gaze position, a CNN reaches .69 on
-development and .75 on the locked test, and simple models reach .61–.73. Without it, the best
-methods reach about .58, no better than a single rule on mean position, and the CNN falls to
-chance. Event features, feature selection, ensembles and transfer learning did not change this.
-For gaze-data privacy, withholding raw coordinates removed most of the content signal in this
-closed two-program setting, though the derived signals are not entirely free of it.
+On new people, eye-tracking windows predict which of two known programs is being read.
+Absolute gaze position improves performance in the evaluated pipelines: a CNN reaches .69 on
+development and .75 on the locked test, while transfer gives .68/.76 without a clear gain.
+The test two-class scores average six of the seven held-out people. Without absolute position,
+the best summary-feature models reach about .56 on development and .58 on test, above the .50
+dummy, while the CNN is near chance. Removing position reduces performance in this experiment,
+but does not measure how much content information remains or demonstrate privacy protection.
 
 ## Limitations
 
@@ -440,7 +462,9 @@ closed two-program setting, though the derived signals are not entirely free of 
   spread, which tracks line length.
 - **Reused development people.** The same 23 people informed the V1, V2 and V3 choices. Nested
   folds limit the optimism from tuning, but only the locked test people are truly fresh.
-- **Six test people.** The test intervals are wide, and pid 18 has only one class.
+- **Seven test people, six two-class.** Pid 18 has only vehicle windows and is reported by
+  vehicle recall separately. The two-class scores and descriptive intervals use six people;
+  the intervals do not include retraining uncertainty.
 - **Transfer interpretation.** Our reading of "transfer" may differ from what the course intends.
 
 ## References
